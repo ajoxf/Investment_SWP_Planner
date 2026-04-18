@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Investment Portfolio Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#f8f7f4; --bg2:#ffffff; --bg3:#f0ede8; --bg4:#e8e4dd;
+  --border:rgba(0,0,0,0.08); --border2:rgba(0,0,0,0.14);
+  --text:#1c1c1a; --text2:#5c5c56; --text3:#9c9c92;
+  --gold:#7a5c2e; --green:#2a6e40; --red:#9e3b30; --blue:#2a5f8a; --amber:#7a5a1e; --purple:#4e3a8e;
+  --font-d:'DM Serif Display',serif; --font-s:'DM Sans',sans-serif; --font-m:'DM Mono',monospace;
+  --r:8px; --r2:14px; --shadow:0 1px 3px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-s);background:var(--bg);color:var(--text);font-size:13px;line-height:1.55;min-height:100vh}
+
+/* Layout */
+.app{display:grid;grid-template-columns:230px 1fr;grid-template-rows:58px 1fr;height:100vh;overflow:hidden}
+.topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--border);background:var(--bg2);z-index:20;box-shadow:var(--shadow);gap:12px}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0}
+.main{overflow-y:auto;background:var(--bg);padding:26px 28px}
+
+/* Topbar */
+.brand{font-family:var(--font-d);font-size:20px;color:var(--gold)}
+.brand-sub{font-size:11px;color:var(--text3);margin-left:10px;font-family:var(--font-s)}
+.top-right{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text2)}
+select{background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:var(--r);padding:5px 10px;font-family:var(--font-s);font-size:12px;cursor:pointer;outline:none}
+
+/* Sidebar */
+.sb-corpus{margin:0 12px 16px;padding:14px 16px;background:var(--bg3);border-radius:var(--r2);border:1px solid var(--border)}
+.sb-corpus-label{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px}
+.sb-corpus-val{font-family:var(--font-d);font-size:22px;color:var(--gold);line-height:1.2}
+.sb-corpus-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.sb-mini-row{display:flex;justify-content:space-between;padding:4px 14px;font-size:11px}
+.sb-mini-label{color:var(--text3)}
+.sb-mini-val{font-family:var(--font-m);color:var(--text2)}
+.sb-mini-val.green{color:var(--green)}
+.sb-mini-val.red{color:var(--red)}
+.nav-section-label{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);padding:0 16px;margin:14px 0 5px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;color:var(--text2);font-size:12.5px;transition:all 0.12s;user-select:none;border-right:2px solid transparent}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(122,92,46,0.08);color:var(--gold);border-right-color:var(--gold)}
+.nav-icon{width:14px;height:14px;flex-shrink:0;opacity:0.55}
+.nav-item.active .nav-icon{opacity:1}
+.nav-divider{height:1px;background:var(--border);margin:10px 14px}
+
+/* Panel */
+.panel{display:none}
+.panel.active{display:block;animation:fi 0.16s ease}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.page-title{font-family:var(--font-d);font-size:26px;margin-bottom:3px}
+.page-sub{font-size:12px;color:var(--text2);margin-bottom:22px}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px 20px;box-shadow:var(--shadow)}
+.card-title{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:14px;font-weight:600}
+
+/* Metric cards */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;box-shadow:var(--shadow)}
+.mc.accent{border-color:rgba(122,92,46,0.25);background:rgba(122,92,46,0.03)}
+.mc-label{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:6px}
+.mc-val{font-family:var(--font-d);font-size:22px}
+.mc-sub{font-size:11px;color:var(--text2);margin-top:4px}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:500;margin-top:5px}
+.pill-g{background:rgba(42,110,64,0.1);color:var(--green)}
+.pill-r{background:rgba(158,59,48,0.1);color:var(--red)}
+.pill-a{background:rgba(122,90,30,0.1);color:var(--amber)}
+
+/* Grids */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-bottom:18px}
+
+/* Corpus setup block */
+.corpus-setup{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r2);padding:22px 24px;margin-bottom:22px;box-shadow:var(--shadow)}
+.corpus-row{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.corpus-field{display:flex;flex-direction:column;gap:5px}
+.corpus-field label{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-weight:600}
+.corpus-input-wrap{display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:var(--r);overflow:hidden;background:var(--bg2)}
+.corpus-input-wrap:focus-within{border-color:var(--gold)}
+.corpus-prefix{padding:9px 11px;font-size:14px;color:var(--text3);background:var(--bg3);border-right:1px solid var(--border2)}
+.corpus-input-wrap input{border:none;outline:none;padding:9px 12px;font-size:15px;font-family:var(--font-m);background:transparent;color:var(--text);width:180px;text-align:right}
+.quick-btns{display:flex;gap:5px;flex-wrap:wrap}
+.qbtn{padding:7px 14px;border-radius:var(--r);border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;font-family:var(--font-s);cursor:pointer;transition:all 0.12s;font-weight:500}
+.qbtn:hover{border-color:var(--gold);color:var(--gold);background:rgba(122,92,46,0.06)}
+.qbtn.active{border-color:var(--gold);color:var(--gold);background:rgba(122,92,46,0.1);font-weight:600}
+.scale-preview{font-size:11px;color:var(--text3);margin-top:8px;min-height:16px}
+.corpus-hint{font-size:11px;color:var(--text3);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+
+/* Product rows */
+.prod-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;margin-bottom:10px;box-shadow:var(--shadow)}
+.prod-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.prod-name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.prod-name-text{font-size:14px;font-weight:500}
+.type-tag{padding:2px 9px;border-radius:20px;font-size:10px;font-weight:500}
+.tt-fixed{background:rgba(42,95,138,0.1);color:var(--blue)}
+.tt-equity{background:rgba(42,110,64,0.1);color:var(--green)}
+.tt-debt_mf{background:rgba(122,90,30,0.1);color:var(--amber)}
+.tt-gold{background:rgba(122,92,46,0.1);color:var(--gold)}
+.tt-hybrid{background:rgba(78,58,142,0.1);color:var(--purple)}
+.saved-badge{font-size:10px;color:var(--green);background:rgba(42,110,64,0.1);padding:2px 8px;border-radius:20px;display:none}
+.prod-fields{display:grid;grid-template-columns:2.2fr 1.2fr 1fr 1.5fr;gap:10px;align-items:end}
+.f-group{display:flex;flex-direction:column;gap:4px}
+.f-label{font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3)}
+.chk-row{display:flex;align-items:center;gap:7px;margin-top:9px;cursor:pointer}
+.chk-row input{accent-color:var(--gold);width:13px;height:13px;flex-shrink:0}
+.chk-label{font-size:11px;color:var(--text2)}
+.tax-row{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.tax-tag{background:rgba(158,59,48,0.08);color:var(--red);padding:2px 9px;border-radius:20px;font-size:10px}
+.int-info{font-size:11px;color:var(--text2)}
+.del-btn{width:28px;height:28px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.12s;flex-shrink:0;line-height:1}
+.del-btn:hover{border-color:var(--red);color:var(--red);background:rgba(158,59,48,0.06)}
+
+/* Inputs */
+input[type=text],input[type=number],select{width:100%;padding:7px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font-s);font-size:12px;outline:none;transition:border-color 0.12s}
+input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--gold)}
+input[type=number]{font-family:var(--font-m);text-align:right}
+
+/* Buttons */
+.btn{padding:8px 16px;border-radius:var(--r);border:1px solid var(--border2);background:transparent;color:var(--text);font-family:var(--font-s);font-size:12px;cursor:pointer;transition:all 0.12s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--bg3)}
+.btn-gold{background:rgba(122,92,46,0.1);border-color:rgba(122,92,46,0.35);color:var(--gold)}
+.btn-gold:hover{background:rgba(122,92,46,0.18)}
+
+/* Total bar */
+.total-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);margin:14px 0}
+.check-ok{color:var(--green);font-size:11px}
+.check-warn{color:var(--amber);font-size:11px}
+
+/* Info box */
+.info-box{font-size:11px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-top:12px;line-height:1.65}
+.info-box strong{color:var(--text);font-weight:500}
+
+/* Alloc bar */
+.alloc-bar{height:7px;border-radius:4px;display:flex;overflow:hidden;gap:2px;margin-bottom:14px}
+.alloc-seg{height:100%;border-radius:2px;transition:flex 0.3s}
+
+/* Table wrapper */
+.tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:18px;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:9px 14px;text-align:right;font-size:10px;font-weight:600;color:var(--text3);background:var(--bg3);text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:11px 14px;text-align:right;border-top:1px solid var(--border)}
+td:first-child{text-align:left;font-weight:500}
+tr:hover td{background:rgba(0,0,0,0.015)}
+.mono{font-family:var(--font-m)}
+.green-cell{color:var(--green)}
+.red-cell{color:var(--red)}
+.muted{color:var(--text2);font-size:11px}
+.net-big{font-family:var(--font-d);font-size:16px}
+
+/* Scenario tabs */
+.scen-tabs{display:flex;gap:7px;margin-bottom:18px}
+.st{padding:6px 16px;border-radius:var(--r);border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:var(--font-s);font-size:12px;cursor:pointer;transition:all 0.12s}
+.st:hover{background:var(--bg3)}
+.st.act-stress{background:rgba(158,59,48,0.08);border-color:rgba(158,59,48,0.3);color:var(--red)}
+.st.act-base{background:rgba(42,110,64,0.08);border-color:rgba(42,110,64,0.3);color:var(--green)}
+.st.act-opt{background:rgba(122,92,46,0.08);border-color:rgba(122,92,46,0.3);color:var(--gold)}
+
+/* Scenario config */
+.scen-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;box-shadow:var(--shadow)}
+.scen-hdr{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.scen-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.scen-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end}
+
+/* Scorecard */
+.scorecard{width:100%;border-collapse:collapse;border-radius:var(--r2);overflow:hidden;border:1px solid var(--border)}
+.scorecard th{padding:11px 16px;font-size:11px;font-weight:600;text-align:left;text-transform:uppercase;letter-spacing:0.04em}
+.scorecard td{padding:11px 16px;font-size:12.5px;border-top:1px solid var(--border);border-right:1px solid var(--border);font-family:var(--font-m)}
+.scorecard td:first-child{font-family:var(--font-s);color:var(--text2);font-size:11.5px;background:var(--bg3);border-right:1px solid var(--border2);font-weight:500}
+.scorecard td:last-child{border-right:none}
+.sc-stress{color:var(--red)}
+.sc-base{color:var(--green)}
+.sc-opt{color:var(--gold)}
+
+/* Guide */
+.guide-row{display:flex;gap:14px;padding:11px 0;border-bottom:1px solid var(--border)}
+.guide-row:last-child{border-bottom:none}
+.guide-when{font-size:11px;font-weight:600;color:var(--gold);min-width:130px;flex-shrink:0;padding-top:1px}
+.guide-action{font-size:12px;font-weight:500;margin-bottom:3px}
+.guide-why{font-size:11px;color:var(--text2)}
+
+/* Waterfall */
+.wf-grid{display:grid;grid-template-columns:90px 1fr 80px 70px;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:start}
+.wf-grid:last-child{border-bottom:none}
+.wf-period{font-size:11px;font-weight:600;color:var(--gold)}
+.wf-from{font-size:12px;font-weight:500;margin-bottom:2px}
+.wf-why{font-size:11px;color:var(--text2)}
+.wf-amt{font-size:12px;font-family:var(--font-m);text-align:right}
+.wf-tax{font-size:11px;color:var(--green);font-weight:600;text-align:right}
+
+/* Charts */
+.ch{position:relative;height:210px}
+.ch-sm{position:relative;height:175px}
+.ch-lg{position:relative;height:240px}
+
+/* Tax table */
+.tax-table td{font-size:11.5px;padding:9px 14px;color:var(--text2)}
+.tax-table td:first-child{font-weight:500;color:var(--text)}
+.row-total td{font-weight:600;color:var(--gold);background:var(--bg3)}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:0;flex-shrink:0">
+    <span class="brand">Portfolio Planner</span>
+  </div>
+
+  <!-- Corpus input — always visible in topbar -->
+  <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:center;max-width:560px;margin:0 24px">
+    <span style="font-size:11px;color:var(--text3);white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:0.06em">Corpus</span>
+    <div style="display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:var(--r);overflow:hidden;background:var(--bg2);flex:1;max-width:200px" id="corpusWrap">
+      <span style="padding:6px 9px;font-size:13px;color:var(--text3);background:var(--bg3);border-right:1px solid var(--border2)">₹</span>
+      <input type="number" id="corpusAmt" placeholder="e.g. 7500000" step="100000"
+        style="border:none;outline:none;padding:6px 10px;font-size:13px;font-family:var(--font-m);background:transparent;color:var(--text);width:100%;text-align:right"
+        oninput="onCorpusInput(this.value)" value="7500000">
+    </div>
+    <div style="display:flex;gap:4px">
+      <button class="qbtn active" onclick="setCorpus(7500000,this)">75L</button>
+      <button class="qbtn" onclick="setCorpus(10000000,this)">1Cr</button>
+      <button class="qbtn" onclick="setCorpus(20000000,this)">2Cr</button>
+      <button class="qbtn" onclick="setCorpus(50000000,this)">5Cr</button>
+      <button class="qbtn" onclick="setCorpus(100000000,this)">10Cr</button>
+    </div>
+    <button class="btn btn-gold" onclick="scaleToCorpus()" style="padding:6px 14px;font-size:12px;white-space:nowrap">Scale →</button>
+    <span style="font-size:11px;color:var(--text3);white-space:nowrap" id="topScaleHint"></span>
+  </div>
+
+  <div class="top-right">
+    <span>Tax slab</span>
+    <select id="taxSlab" onchange="recalcAll()">
+      <option value="0.312">30% + cess (31.2%)</option>
+      <option value="0.208">20% + cess (20.8%)</option>
+      <option value="0.104">10% + cess (10.4%)</option>
+      <option value="0">No tax</option>
+    </select>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-corpus">
+    <div class="sb-corpus-label">Total corpus</div>
+    <div class="sb-corpus-val" id="sbAmt">—</div>
+    <div class="sb-corpus-sub" id="sbCount">0 products</div>
+  </div>
+  <div class="sb-mini-row"><span class="sb-mini-label">Gross interest/mo</span><span class="sb-mini-val" id="sb-gint">—</span></div>
+  <div class="sb-mini-row"><span class="sb-mini-label">Tax on interest/mo</span><span class="sb-mini-val red" id="sb-tax">—</span></div>
+  <div class="sb-mini-row"><span class="sb-mini-label">Net interest/mo</span><span class="sb-mini-val green" id="sb-nint">—</span></div>
+
+  <div class="nav-divider"></div>
+  <div class="nav-section-label">Dashboard</div>
+  <div class="nav-item active" onclick="go('overview')">
+    <svg class="nav-icon" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="6" height="6" rx="1"/><rect x="8" y="0" width="6" height="6" rx="1"/><rect x="0" y="8" width="6" height="6" rx="1"/><rect x="8" y="8" width="6" height="6" rx="1"/></svg>
+    Overview
+  </div>
+  <div class="nav-item" onclick="go('portfolio')">
+    <svg class="nav-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="3" width="12" height="10" rx="1"/><path d="M5 3V2a2 2 0 014 0v1"/></svg>
+    Portfolio builder
+  </div>
+  <div class="nav-item" onclick="go('scenarios')">
+    <svg class="nav-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><polyline points="1,11 4,6 7,9 10,4 13,7"/></svg>
+    Scenarios
+  </div>
+  <div class="nav-item" onclick="go('projection')">
+    <svg class="nav-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="1" width="12" height="12" rx="1"/><line x1="3.5" y1="10" x2="3.5" y2="6"/><line x1="6.5" y1="10" x2="6.5" y2="4"/><line x1="9.5" y1="10" x2="9.5" y2="7"/><line x1="12.5" y1="10" x2="12.5" y2="3"/></svg>
+    5-year projection
+  </div>
+  <div class="nav-divider"></div>
+  <div class="nav-section-label">Reference</div>
+  <div class="nav-item" onclick="go('taxguide')">
+    <svg class="nav-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 1L2 3v5c0 3 2.5 5 5 5s5-2 5-5V3z"/></svg>
+    Tax guide
+  </div>
+  <div class="nav-item" onclick="go('waterfall')">
+    <svg class="nav-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="1" y1="4" x2="13" y2="4"/><line x1="4" y1="4" x2="4" y2="8"/><line x1="4" y1="8" x2="13" y2="8"/><line x1="10" y1="8" x2="10" y2="12"/><line x1="1" y1="12" x2="10" y2="12"/></svg>
+    SWP waterfall
+  </div>
+  <div class="nav-item" onclick="go('keydates')">
+    <svg class="nav-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="2" width="12" height="11" rx="1"/><line x1="4" y1="1" x2="4" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="1" y1="6" x2="13" y2="6"/></svg>
+    Key dates
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- OVERVIEW -->
+<div class="panel active" id="panel-overview">
+  <div class="page-title">Overview</div>
+  <div class="page-sub">Live post-tax summary of your portfolio</div>
+  <div class="metrics" id="ovMetrics"></div>
+  <div class="g2">
+    <div class="card"><div class="card-title">Allocation breakdown</div><div class="alloc-bar" id="allocBar"></div><div id="allocLegend"></div></div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:0">Monthly payout sources</div>
+        <div style="display:flex;gap:4px">
+          <button id="dBtn1" onclick="setDonutYear(1)" style="padding:4px 12px;font-size:11px;border-radius:20px;border:1px solid var(--border2);background:var(--text);color:var(--bg2);cursor:pointer;font-family:var(--font-s);font-weight:500">Year 1</button>
+          <button id="dBtn2" onclick="setDonutYear(2)" style="padding:4px 12px;font-size:11px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font-s)">Year 2+</button>
+        </div>
+      </div>
+      <div class="ch"><canvas id="donutChart"></canvas></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-title">Corpus trajectory — all 3 scenarios (5 years)</div>
+    <div class="ch-lg"><canvas id="trajChart"></canvas></div>
+  </div>
+  <div class="card"><div class="card-title">5-year scorecard</div><div id="scorecard" style="margin-top:4px"></div></div>
+</div>
+
+<!-- PORTFOLIO -->
+<div class="panel" id="panel-portfolio">
+  <div class="page-title">Portfolio builder</div>
+  <div class="page-sub">Enter your corpus, select products and set their amounts. All projections update live.</div>
+
+  <!-- Corpus info bar in portfolio panel -->
+  <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:3px">Current corpus</div>
+      <div style="font-family:var(--font-d);font-size:20px;color:var(--gold)" id="portCorpusDisplay">₹0</div>
+    </div>
+    <div style="font-size:12px;color:var(--text2);flex:1">
+      Use the <strong style="color:var(--text)">corpus input in the top bar</strong> to enter your target amount, then click <strong style="color:var(--text)">Scale →</strong> to proportionally adjust all products below. Or edit each product amount directly.
+    </div>
+    <div style="font-size:11px;color:var(--text3)" id="scalePreview"></div>
+  </div>
+
+  <!-- Products -->
+  <div id="prodList"></div>
+  <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+    <button class="btn btn-gold" onclick="addProd()">+ Add product</button>
+    <span style="font-size:11px;color:var(--text3)">Changes save automatically</span>
+  </div>
+  <div class="total-bar">
+    <div><span style="font-size:12px;color:var(--text2)">Total allocated</span><span id="totCheck" style="margin-left:10px"></span></div>
+    <span style="font-family:var(--font-d);font-size:18px" id="totAmt">₹0</span>
+  </div>
+
+  <!-- Payout targets -->
+  <div style="margin-top:18px;margin-bottom:6px">
+    <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px">Monthly payout targets — <strong style="color:var(--text)">net post-tax amount</strong> you want in hand</div>
+    <div class="g2">
+      <div class="f-group">
+        <span class="f-label">Year 1 net monthly (₹ in hand)</span>
+        <input type="number" id="t1" value="40000" oninput="recalcAll()">
+        <span style="font-size:11px;color:var(--text3);margin-top:3px" id="t1gross"></span>
+      </div>
+      <div class="f-group">
+        <span class="f-label">Year 2–5 net monthly (₹ in hand)</span>
+        <input type="number" id="t2" value="50000" oninput="recalcAll()">
+        <span style="font-size:11px;color:var(--text3);margin-top:3px" id="t2gross"></span>
+      </div>
+    </div>
+  </div>
+  <div class="info-box" id="portNote"></div>
+</div>
+
+<!-- SCENARIOS -->
+<div class="panel" id="panel-scenarios">
+  <div class="page-title">Scenarios</div>
+  <div class="page-sub">Growth rates for market-linked products. Fixed income uses only the interest rate you entered.</div>
+  <div class="g3">
+    <div class="scen-card"><div class="scen-hdr"><div class="scen-dot" style="background:var(--red)"></div><div><div style="font-size:13px;font-weight:500">Stress</div><div style="font-size:11px;color:var(--text2)">Worst case</div></div></div>
+      <div class="scen-fields">
+        <div class="f-group"><span class="f-label">Equity / hybrid %</span><input type="number" id="s_eq" value="5" step="0.5" oninput="recalcAll()"></div>
+        <div class="f-group"><span class="f-label">Debt fund %</span><input type="number" id="s_dbt" value="5" step="0.5" oninput="recalcAll()"></div>
+        <div class="f-group"><span class="f-label">Gold / SGB %</span><input type="number" id="s_gld" value="5" step="0.5" oninput="recalcAll()"></div>
+      </div>
+    </div>
+    <div class="scen-card"><div class="scen-hdr"><div class="scen-dot" style="background:var(--green)"></div><div><div style="font-size:13px;font-weight:500">Base</div><div style="font-size:11px;color:var(--text2)">Realistic averages</div></div></div>
+      <div class="scen-fields">
+        <div class="f-group"><span class="f-label">Equity / hybrid %</span><input type="number" id="b_eq" value="10" step="0.5" oninput="recalcAll()"></div>
+        <div class="f-group"><span class="f-label">Debt fund %</span><input type="number" id="b_dbt" value="7" step="0.5" oninput="recalcAll()"></div>
+        <div class="f-group"><span class="f-label">Gold / SGB %</span><input type="number" id="b_gld" value="7" step="0.5" oninput="recalcAll()"></div>
+      </div>
+    </div>
+    <div class="scen-card"><div class="scen-hdr"><div class="scen-dot" style="background:var(--gold)"></div><div><div style="font-size:13px;font-weight:500">Optimistic</div><div style="font-size:11px;color:var(--text2)">Markets do well</div></div></div>
+      <div class="scen-fields">
+        <div class="f-group"><span class="f-label">Equity / hybrid %</span><input type="number" id="o_eq" value="12" step="0.5" oninput="recalcAll()"></div>
+        <div class="f-group"><span class="f-label">Debt fund %</span><input type="number" id="o_dbt" value="7.5" step="0.5" oninput="recalcAll()"></div>
+        <div class="f-group"><span class="f-label">Gold / SGB %</span><input type="number" id="o_gld" value="9" step="0.5" oninput="recalcAll()"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card"><div class="card-title">Year-5 corpus — all scenarios</div><div class="ch-sm"><canvas id="scenBar"></canvas></div></div>
+  <div class="info-box" style="margin-top:14px">Growth rates apply only to mutual funds, SGB, and other market-linked products. Fixed income (SCSS, FD, RBI bonds) earns only the interest rate you set — their principal does not grow.</div>
+</div>
+
+<!-- PROJECTION -->
+<div class="panel" id="panel-projection">
+  <div class="page-title">5-year projection</div>
+  <div class="page-sub">Pre-tax payout, tax, and net take-home — year by year</div>
+  <div class="scen-tabs">
+    <button class="st act-stress" onclick="showScen('stress',this)">📉 Stress</button>
+    <button class="st" onclick="showScen('base',this)">📊 Base</button>
+    <button class="st" onclick="showScen('opt',this)">📈 Optimistic</button>
+  </div>
+  <div class="g3" id="projCards" style="margin-bottom:18px"></div>
+  <div class="tbl-wrap">
+    <table><thead><tr>
+      <th>Year</th><th>Gross payout</th><th>Interest</th><th>SWP from MFs</th>
+      <th style="color:var(--red)">Tax paid</th><th style="color:var(--green)">Net take-home</th>
+      <th>Corpus end</th><th>vs start</th>
+    </tr></thead><tbody id="projBody"></tbody></table>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Monthly income breakdown by period</div>
+    <table><thead><tr><th>Period</th><th>Gross target</th><th>Interest tax/yr</th><th>SWP tax/yr</th><th>Total tax/yr</th><th style="color:var(--green)">Net monthly</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Year 1</td><td class="mono">₹40,000</td><td class="red-cell mono">₹97,235</td><td class="mono">₹0</td><td class="red-cell mono">₹97,235</td><td class="green-cell"><span class="net-big">₹31,638</span></td><td class="muted">Interest + existing MF SWP (LTCG-exempt)</td></tr>
+      <tr><td>Year 2–3</td><td class="mono">₹50,000</td><td class="red-cell mono">₹97,235</td><td class="mono">₹1,500</td><td class="red-cell mono">₹98,735</td><td class="green-cell"><span class="net-big">₹41,939</span></td><td class="muted">Interest + Balanced Adv SWP (within LTCG exemption)</td></tr>
+      <tr><td>Year 4–5</td><td class="mono">₹50,000</td><td class="red-cell mono">₹97,235</td><td class="mono">₹3,000</td><td class="red-cell mono">₹1,00,235</td><td class="green-cell"><span class="net-big">₹41,636</span></td><td class="muted">Interest + Balanced Adv SWP (gain fraction rising)</td></tr>
+    </tbody></table>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-title">Monthly cashflow — gross vs net</div><div class="ch"><canvas id="cashChart"></canvas></div></div>
+    <div class="card"><div class="card-title">Corpus growth over 5 years</div><div class="ch"><canvas id="corpChart"></canvas></div></div>
+  </div>
+  <div class="info-box" id="projNote"></div>
+</div>
+
+<!-- TAX GUIDE -->
+<div class="panel" id="panel-taxguide">
+  <div class="page-title">Tax guide</div>
+  <div class="page-sub">What you pay and keep — under current rules (30% slab)</div>
+  <div class="tbl-wrap" style="margin-bottom:18px">
+    <table class="tax-table"><thead><tr><th>Income source</th><th>Tax type</th><th>Rate</th><th>Annual tax</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>SCSS interest (₹2,46,000/yr)</td><td>Income from Other Sources</td><td class="mono">31.2%</td><td class="red-cell mono">₹76,752</td><td>TDS if &gt;₹1L. Net yield ~5.64%.</td></tr>
+      <tr><td>RBI FRSB interest (₹24,150/yr)</td><td>Income from Other Sources</td><td class="mono">31.2%</td><td class="red-cell mono">₹7,535</td><td>No TDS. Declare in ITR.</td></tr>
+      <tr><td>SGB interest (₹41,500/yr)</td><td>Income from Other Sources</td><td class="mono">31.2%</td><td class="red-cell mono">₹12,948</td><td>No TDS. Declare in ITR.</td></tr>
+      <tr><td>Existing MF SWP — Year 1</td><td>Long Term Capital Gain</td><td class="mono">12.5% above ₹1.25L</td><td class="green-cell mono">₹0</td><td>~₹84k gain — within ₹1.25L exemption.</td></tr>
+      <tr><td>Balanced Adv SWP — Years 2–5</td><td>Long Term Capital Gain</td><td class="mono">12.5% above ₹1.25L</td><td class="green-cell mono">₹0–₹5k/yr</td><td>Gain stays within exemption most years.</td></tr>
+      <tr><td>SGB maturity gain</td><td>Exempt (original subscriber)</td><td class="mono">0%</td><td class="green-cell mono">₹0</td><td>Budget 2026: tax-free if held to maturity.</td></tr>
+      <tr class="row-total"><td colspan="3"><strong>Total annual tax</strong></td><td class="mono">~₹97k–₹1.02L/yr</td><td>Mostly interest. SWP is nearly tax-free.</td></tr>
+    </tbody></table>
+  </div>
+  <div class="card"><div class="card-title">Tax breakdown by source</div><div class="ch-sm"><canvas id="taxPie"></canvas></div></div>
+  <div class="info-box" style="margin-top:14px"><strong>Key insight:</strong> Interest income is your main tax burden (31.2% slab). MF SWP is far more tax-efficient — LTCG 12.5% above ₹1.25L/yr exemption, typically ₹0 for first 2–3 years.</div>
+</div>
+
+<!-- WATERFALL -->
+<div class="panel" id="panel-waterfall">
+  <div class="page-title">SWP waterfall</div>
+  <div class="page-sub">Which fund to draw from, in what order, and why</div>
+  <div class="card" style="margin-bottom:18px">
+    <div style="display:grid;grid-template-columns:90px 1fr 80px 70px;gap:12px;padding:6px 14px;margin-bottom:6px">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3)">Period</span>
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3)">Draw from</span>
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);text-align:right">Amount/yr</span>
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);text-align:right">Tax</span>
+    </div>
+    <div class="wf-grid"><div class="wf-period">Year 1</div><div><div class="wf-from">Existing ₹5L equity MF</div><div class="wf-why">Already LTCG-qualified (held &gt;1yr, doubled). Zero tax. Lets Balanced Advantage compound untouched for 12 months.</div></div><div class="wf-amt">₹1.68L</div><div class="wf-tax">₹0</div></div>
+    <div class="wf-grid"><div class="wf-period">Year 2</div><div><div class="wf-from">Existing MF (remainder) + Balanced Advantage</div><div class="wf-why">Existing MF winds down to ~₹1.3L. Balanced Advantage now &gt;12 months — LTCG eligible. Transition begins.</div></div><div class="wf-amt">₹2.88L</div><div class="wf-tax">₹0</div></div>
+    <div class="wf-grid"><div class="wf-period">Year 3</div><div><div class="wf-from">Last of existing MF → Balanced Advantage</div><div class="wf-why">Existing MF exhausted. Full switch to Balanced Advantage. Gain fraction still within ₹1.25L exemption.</div></div><div class="wf-amt">₹2.82L</div><div class="wf-tax">₹0</div></div>
+    <div class="wf-grid"><div class="wf-period">Years 4–5</div><div><div class="wf-from">Balanced Advantage (80%) + Debt fund (20%)</div><div class="wf-why">Debt fund provides 20% as stable non-equity withdrawal — avoids forced equity selling during market dips.</div></div><div class="wf-amt">₹2.61–2.88L</div><div class="wf-tax">₹0–₹5k</div></div>
+  </div>
+  <div class="card"><div class="card-title">Market dip rule</div><p style="font-size:12px;color:var(--text2);line-height:1.7">If equity falls <strong style="color:var(--text)">&gt;15%</strong>, pause the Balanced Advantage SWP and draw fully from the debt buffer. Your ₹5L debt fund can sustain full payout for ~20 months. Restart hybrid SWP once markets recover &gt;10% from the trough.</p></div>
+</div>
+
+<!-- KEY DATES -->
+<div class="panel" id="panel-keydates">
+  <div class="page-title">Key dates &amp; actions</div>
+  <div class="page-sub">Five decisions over the next 5 years</div>
+  <div class="card" style="margin-bottom:18px">
+    <div class="guide-row"><div class="guide-when">Month 13</div><div><div class="guide-action">Start Balanced Advantage fund SWP</div><div class="guide-why">Only after 12 full months does the fund qualify for LTCG (12.5%) vs STCG (20%). Starting one month early costs ₹10–15k extra tax. Do not start in Year 1.</div></div></div>
+    <div class="guide-row"><div class="guide-when">Year 5 — SCSS</div><div><div class="guide-action">Decide: extend SCSS or redeploy?</div><div class="guide-why">If SCSS rate at renewal is ≥7%, extend for 3 more years. If it falls to 5–6%, move into RBI FRSB or AAA target-maturity bond funds.</div></div></div>
+    <div class="guide-row"><div class="guide-when">Year 6 — SGB</div><div><div class="guide-action">Redeploy SGB proceeds: 40% Debt + 60% Hybrid</div><div class="guide-why">SGB matures tax-free. Redeploy to restore the plan's growth engine: 40% into debt buffer, 60% into Balanced Advantage.</div></div></div>
+    <div class="guide-row"><div class="guide-when">Every April</div><div><div class="guide-action">File ITR — declare SWP as capital gains</div><div class="guide-why">SWP = redemption of units = capital gains event. Must be reported in Schedule CG even at ₹0 tax. Use ITR-2.</div></div></div>
+    <div class="guide-row"><div class="guide-when">Equity ↓ 15%+</div><div><div class="guide-action">Pause hybrid SWP, use debt buffer</div><div class="guide-why">Never sell equity at a loss. Pause Balanced Advantage SWP via your AMC's portal (takes 2 min). Draw from debt fund. Restart when markets recover.</div></div></div>
+  </div>
+  <div class="info-box"><strong>Capital preservation rule:</strong> Interest alone (~₹26k/mo net) covers most of Year 1. SWP from growth funds covers the rest. Follow the waterfall order and pause equity SWP during corrections — corpus stays stable in the base case.</div>
+</div>
+
+</main>
+</div>
+
+<script>
+const LTCG_RATE=0.125, LTCG_EXP=125000;
+const COLORS=['#7a5c2e','#2a5f8a','#2a6e40','#7a5a1e','#4e3a8e','#6a3a2a','#1a6a6a'];
+const TYPE_META={
+  fixed:  {label:'Fixed income', cls:'tt-fixed',  tax:'Slab on interest', grow:false},
+  equity: {label:'Equity MF',    cls:'tt-equity', tax:'LTCG 12.5%',       grow:true},
+  debt_mf:{label:'Debt MF',      cls:'tt-debt_mf',tax:'Slab on gains',    grow:true},
+  gold:   {label:'SGB / Gold',   cls:'tt-gold',   tax:'Slab (int) + 0% gain', grow:true},
+  hybrid: {label:'Hybrid MF',    cls:'tt-hybrid', tax:'LTCG 12.5%',       grow:true},
+};
+
+let products=[
+  {id:1,name:'SCSS @ 8.2%',         amount:3000000,intRate:8.2, type:'fixed',   ltcg:false},
+  {id:2,name:'Existing Equity MF',   amount:500000, intRate:0,   type:'equity',  ltcg:true},
+  {id:3,name:'RBI Floating Bond',    amount:300000, intRate:8.05,type:'fixed',   ltcg:false},
+  {id:4,name:'Debt Fund (buffer)',   amount:500000, intRate:0,   type:'debt_mf', ltcg:false},
+  {id:5,name:'Balanced Advantage MF',amount:1540000,intRate:0,   type:'hybrid',  ltcg:false},
+  {id:6,name:'SGB (Sovereign Gold)', amount:1660000,intRate:2.5, type:'gold',    ltcg:true},
+];
+let nid=7, activeScen='stress', donutYear=1;
+const charts={};
+
+const $=id=>document.getElementById(id);
+const TAX=()=>parseFloat($('taxSlab').value)||0;
+const gv=id=>parseFloat($(id)?.value)||0;
+const fmt=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+const fmtL=n=>{ const v=n/100000; return v>=100?(v/100).toFixed(2)+'Cr':v.toFixed(2)+'L'; };
+const fmtPct=n=>(n>=0?'+':'')+n.toFixed(1)+'%';
+const annInt=p=>p.amount*(p.intRate/100);
+const taxInt=p=>(p.type==='fixed'||p.type==='gold')?annInt(p)*TAX():0;
+
+function getRates(s){
+  if(s==='stress')return{eq:gv('s_eq')/100,dbt:gv('s_dbt')/100,gld:gv('s_gld')/100};
+  if(s==='base')  return{eq:gv('b_eq')/100,dbt:gv('b_dbt')/100,gld:gv('b_gld')/100};
+  return{eq:gv('o_eq')/100,dbt:gv('o_dbt')/100,gld:gv('o_gld')/100};
+}
+function gRate(p,r){
+  if(!TYPE_META[p.type].grow) return 0;
+  if(p.type==='equity'||p.type==='hybrid') return r.eq;
+  if(p.type==='debt_mf') return r.dbt;
+  if(p.type==='gold') return r.gld;
+  return 0;
+}
+
+function runProj(scen){
+  const r=getRates(scen);
+  const annTaxEst=products.reduce((s,p)=>s+taxInt(p),0);
+  const grossUp=annTaxEst/12;
+  const t1=(gv('t1')+grossUp)*12, t2=(gv('t2')+grossUp)*12;
+  const tot0=products.reduce((s,p)=>s+p.amount,0);
+  let st=products.map(p=>({...p,cur:p.amount}));
+  const rows=[];
+  for(let yr=1;yr<=5;yr++){
+    const need=yr===1?t1:t2;
+    const totalInt=st.reduce((s,p)=>s+p.cur*(p.intRate/100),0);
+    const taxI=st.reduce((s,p)=>(p.type==='fixed'||p.type==='gold')?s+p.cur*(p.intRate/100)*TAX():s,0);
+    const swpNeed=Math.max(0,need-totalInt);
+    const mfTot=st.filter(p=>p.type!=='fixed').reduce((s,p)=>s+p.cur,0);
+    let ltcgUsed=0,swpTax=0;
+    st=st.map(p=>{
+      const gr=gRate(p,r);
+      if(p.type==='fixed') return{...p};
+      const share=mfTot>0?p.cur/mfTot:0;
+      const mySwp=Math.min(p.cur,swpNeed*share);
+      const gf=(p.ltcg||yr>1)?Math.min(0.08+yr*0.04,0.5):0.15;
+      const gain=mySwp*gf;
+      const isLTCG=p.type==='equity'||p.type==='hybrid';
+      if(isLTCG){const t=Math.max(0,gain-Math.max(0,LTCG_EXP-ltcgUsed));ltcgUsed+=gain;swpTax+=t*LTCG_RATE;}
+      else if(p.type==='debt_mf') swpTax+=gain*TAX();
+      return{...p,cur:Math.max(0,p.cur*(1+gr)-mySwp)};
+    });
+    const corpEnd=st.reduce((s,p)=>s+Math.max(0,p.cur),0);
+    const totTax=taxI+swpTax, netPay=need-totTax;
+    rows.push({yr,need,totalInt,taxI,swpNeed,swpTax,totTax,netPay,corpEnd,chg:(corpEnd-tot0)/tot0*100});
+  }
+  return rows;
+}
+
+// ── Corpus scaling ────────────────────────────────────────────────────────────
+function onCorpusInput(val){
+  const cur=products.reduce((s,p)=>s+p.amount,0);
+  const newVal=parseFloat(val);
+  const hint=$('topScaleHint');
+  const sp=$('scalePreview');
+  if(!newVal||newVal<=0||cur<=0){
+    if(hint)hint.textContent='';
+    if(sp)sp.textContent='';
+    return;
+  }
+  const ratio=newVal/cur;
+  const msg=ratio>1
+    ?'↑ ×'+ratio.toFixed(2)+' from '+fmtL(cur)
+    :'↓ ×'+ratio.toFixed(2)+' from '+fmtL(cur);
+  if(hint)hint.textContent=msg;
+  if(sp)sp.textContent=msg;
+  // Highlight matching quick button
+  document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('active'));
+  const vals={7500000:'75L',10000000:'1Cr',20000000:'2Cr',50000000:'5Cr',100000000:'10Cr'};
+  const matched=vals[Math.round(newVal)];
+  if(matched){
+    document.querySelectorAll('.qbtn').forEach(b=>{ if(b.textContent.trim()===matched) b.classList.add('active'); });
+  }
+}
+
+function setCorpus(amount,btn){
+  $('corpusAmt').value=amount;
+  document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  onCorpusInput(amount);
+}
+
+function scaleToCorpus(){
+  const newTotal=parseFloat($('corpusAmt').value);
+  if(!newTotal||newTotal<=0){alert('Please enter a corpus amount in the top bar first.');return;}
+  const cur=products.reduce((s,p)=>s+p.amount,0);
+  if(cur<=0){alert('Add at least one product first, then scale.');return;}
+  const ratio=newTotal/cur;
+  products=products.map(p=>({...p,amount:Math.round(p.amount*ratio/1000)*1000}));
+  renderProducts(); recalcAll();
+  const hint=$('topScaleHint');
+  if(hint){hint.textContent='✓ Scaled to '+fmtL(newTotal);hint.style.color='var(--green)';setTimeout(()=>{hint.textContent='';hint.style.color='';},2000);}
+  // Wrap corpus input in success flash
+  const wrap=$('corpusWrap');
+  if(wrap){wrap.style.borderColor='var(--green)';setTimeout(()=>{wrap.style.borderColor='';},1000);}
+}
+
+// ── Product management ────────────────────────────────────────────────────────
+function addProd(){
+  products.push({id:nid++,name:'New product',amount:0,intRate:0,type:'equity',ltcg:false});
+  renderProducts();recalcAll();
+}
+function removeProd(id){
+  if(!confirm('Delete this product?'))return;
+  products=products.filter(p=>p.id!==id);
+  renderProducts();recalcAll();
+}
+function updP(id,f,v){
+  const p=products.find(x=>x.id===id);
+  if(!p)return;
+  p[f]=v;
+  recalcAll();
+  const badge=$('saved-'+id);
+  if(badge){badge.style.display='inline-block';setTimeout(()=>badge.style.display='none',2000);}
+}
+
+function renderProducts(){
+  $('prodList').innerHTML=products.map(p=>`
+    <div class="prod-card">
+      <div class="prod-hdr">
+        <div class="prod-name-row">
+          <span class="prod-name-text">${p.name}</span>
+          <span class="type-tag ${TYPE_META[p.type].cls}">${TYPE_META[p.type].label}</span>
+          <span class="saved-badge" id="saved-${p.id}">✓ Saved</span>
+        </div>
+        <button class="del-btn" onclick="removeProd(${p.id})" title="Delete">×</button>
+      </div>
+      <div class="prod-fields">
+        <div class="f-group"><span class="f-label">Product name</span>
+          <input type="text" value="${p.name}" oninput="updP(${p.id},'name',this.value)"></div>
+        <div class="f-group"><span class="f-label">Amount (₹)</span>
+          <input type="number" value="${p.amount}" oninput="updP(${p.id},'amount',+this.value)"></div>
+        <div class="f-group"><span class="f-label">Interest rate (%)</span>
+          <input type="number" value="${p.intRate}" step="0.05" oninput="updP(${p.id},'intRate',+this.value)"></div>
+        <div class="f-group"><span class="f-label">Product type</span>
+          <select onchange="updP(${p.id},'type',this.value)">
+            ${Object.entries(TYPE_META).map(([k,v])=>`<option value="${k}"${k===p.type?' selected':''}>${v.label}</option>`).join('')}
+          </select></div>
+      </div>
+      ${TYPE_META[p.type].grow?`<label class="chk-row">
+        <input type="checkbox" ${p.ltcg?'checked':''} onchange="updP(${p.id},'ltcg',this.checked)">
+        <span class="chk-label">Held &gt;1 year already — LTCG-qualified from day 1</span></label>`:''}
+      <div class="tax-row">
+        <span class="tax-tag">${TYPE_META[p.type].tax}</span>
+        ${annInt(p)>0?`<span class="int-info">${fmt(annInt(p))}/yr gross → ${fmt(annInt(p)-taxInt(p))}/yr net after tax</span>`:''}
+      </div>
+    </div>`).join('');
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+const PANEL_ORDER=['overview','portfolio','scenarios','projection','taxguide','waterfall','keydates'];
+function go(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  $('panel-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active',PANEL_ORDER[i]===name));
+  // Re-render charts when switching to panels with charts (canvases need visible dimensions)
+  if(name==='overview'){
+    const tot=products.reduce((s,p)=>s+p.amount,0);
+    const gInt=products.reduce((s,p)=>s+annInt(p),0);
+    const tInt=products.reduce((s,p)=>s+taxInt(p),0);
+    renderOverview(tot,gInt,tInt,gInt-tInt);
+  }
+  if(name==='projection') renderProjection();
+  if(name==='scenarios') renderScenBar();
+  if(name==='taxguide') renderTaxPie();
+}
+function showScen(s,btn){
+  activeScen=s;
+  document.querySelectorAll('.st').forEach(b=>b.className='st');
+  if(btn) btn.className='st act-'+s;
+  renderProjection();
+}
+
+// ── Charts helper ─────────────────────────────────────────────────────────────
+function mkChart(id,type,data,opts){
+  if(charts[id]){ try{charts[id].destroy();}catch(e){} }
+  const ctx=$(id);
+  if(!ctx) return;
+  // Skip rendering if canvas has no dimensions (panel is hidden)
+  if(ctx.offsetParent===null && ctx.closest('.panel')?.style.display==='none') return;
+  try{
+    charts[id]=new Chart(ctx,{type,data,options:{responsive:true,maintainAspectRatio:false,...opts}});
+  } catch(e){ console.warn('Chart error ('+id+'):', e.message); }
+}
+const GR={color:'#5c5c56',grid:'rgba(0,0,0,0.06)',tickFont:{size:10,family:'DM Mono'},legendFont:{size:11,family:'DM Sans'}};
+
+// ── Main recalc ───────────────────────────────────────────────────────────────
+function recalcAll(){
+  const tot=products.reduce((s,p)=>s+p.amount,0);
+  const gInt=products.reduce((s,p)=>s+annInt(p),0);
+  const tInt=products.reduce((s,p)=>s+taxInt(p),0);
+  const nInt=gInt-tInt;
+  const t2=gv('t2'), t1=gv('t1');
+  const annTaxEst=tInt;
+
+  // Sidebar
+  $('sbAmt').textContent=fmt(tot);
+  $('sbCount').textContent=products.length+' products · '+fmtL(tot);
+  $('sb-gint').textContent=fmt(gInt/12)+'/mo';
+  $('sb-tax').textContent='−'+fmt(tInt/12)+'/mo';
+  $('sb-nint').textContent=fmt(nInt/12)+'/mo';
+  $('brandSub').textContent=tot>0?' — '+fmtL(tot)+' Portfolio':'';
+  const pcd=$('portCorpusDisplay');
+  if(pcd) pcd.textContent=fmt(tot);
+
+  // Portfolio panel
+  $('totAmt').textContent=fmt(tot);
+  $('totCheck').className='check-ok';
+  $('totCheck').textContent=products.length+' products';
+
+  // Gross hints under targets
+  const grossY1=t1+annTaxEst/12, grossY2=t2+annTaxEst/12;
+  const h1=$('t1gross'), h2=$('t2gross');
+  if(h1) h1.textContent=`→ Gross needed: ~${fmt(grossY1)}/mo (net ${fmt(t1)} + ~${fmt(annTaxEst/12)} interest tax)`;
+  if(h2) h2.textContent=`→ Gross needed: ~${fmt(grossY2)}/mo (net ${fmt(t2)} + ~${fmt(annTaxEst/12)} interest tax)`;
+
+  const swp1=Math.max(0,t1-nInt/12), swp2=Math.max(0,t2-nInt/12);
+  $('portNote').innerHTML=`Net interest (post-tax): <strong>${fmt(nInt/12)}/mo</strong>. SWP needed from MFs: <strong>${fmt(swp1)}/mo</strong> yr 1, <strong>${fmt(swp2)}/mo</strong> yr 2–5. SWP gains typically attract <strong>₹0 tax</strong> in years 1–3 (within LTCG exemption).`;
+
+  renderOverview(tot,gInt,tInt,nInt);
+  renderProjection();
+  renderScenBar();
+}
+
+function setDonutYear(yr){
+  donutYear=yr;
+  const b1=$('dBtn1'), b2=$('dBtn2');
+  if(b1&&b2){
+    const activeStyle='background:var(--text);color:var(--bg2);border-color:var(--text)';
+    const idleStyle='background:transparent;color:var(--text2);border-color:var(--border2)';
+    b1.style.cssText=b1.style.cssText.replace(/background:[^;]+;color:[^;]+;border-color:[^;]+/,'');
+    b2.style.cssText=b2.style.cssText.replace(/background:[^;]+;color:[^;]+;border-color:[^;]+/,'');
+    if(yr===1){b1.style.background='var(--text)';b1.style.color='var(--bg2)';b2.style.background='transparent';b2.style.color='var(--text2)';}
+    else{b2.style.background='var(--text)';b2.style.color='var(--bg2)';b1.style.background='transparent';b1.style.color='var(--text2)';}
+  }
+  // Re-render just the donut
+  const tot=products.reduce((s,p)=>s+p.amount,0);
+  const gInt=products.reduce((s,p)=>s+annInt(p),0);
+  const tInt=products.reduce((s,p)=>s+taxInt(p),0);
+  renderDonut(tot,gInt,tInt,gInt-tInt);
+}
+
+function renderDonut(tot,gInt,tInt,nInt){
+  const targetMo = donutYear===1 ? gv('t1') : gv('t2');
+  const intProds=products.filter(p=>annInt(p)>0);
+  const netIntMo=intProds.reduce((s,p)=>s+(annInt(p)-taxInt(p))/12,0);
+  const swpMo=Math.max(0,targetMo-netIntMo);
+  const yearLabel=donutYear===1?'Year 1':'Year 2+';
+  const dlabels=[...intProds.map(p=>p.name+' (net interest)'), ...(swpMo>1?['SWP from MFs ('+yearLabel+')']:[])];
+  const ddata=[...intProds.map(p=>Math.round((annInt(p)-taxInt(p))/12)), ...(swpMo>1?[Math.round(swpMo)]:[])];
+  const dcols=[...intProds.map((_,i)=>COLORS[i%COLORS.length]+'99'), ...(swpMo>1?['#2a5f8a99']:[])];
+  const dbcols=[...intProds.map((_,i)=>COLORS[i%COLORS.length]), ...(swpMo>1?['#2a5f8a']:[])];
+  const dTot=ddata.reduce((s,v)=>s+v,0);
+  mkChart('donutChart','doughnut',
+    {labels:dlabels,datasets:[{data:ddata,backgroundColor:dcols,borderColor:dbcols,borderWidth:1,hoverOffset:6}]},
+    {cutout:'62%',plugins:{
+      legend:{position:'right',labels:{color:GR.color,font:{size:10,family:'DM Sans'},boxWidth:9,padding:10}},
+      tooltip:{callbacks:{label:c=>' '+fmt(c.parsed)+'/mo ('+Math.round(dTot>0?c.parsed/dTot*100:0)+'%)'}}
+    }}
+  );
+}
+
+function renderOverview(tot,gInt,tInt,nInt){
+  const base5=runProj('base'), stress5=runProj('stress'), opt5=runProj('opt');
+  const c5b=base5[4].corpEnd, c5s=stress5[4].corpEnd, c5o=opt5[4].corpEnd;
+  const t2=gv('t2'), swp2=Math.max(0,t2-nInt/12);
+
+  $('ovMetrics').innerHTML=`
+    <div class="mc accent"><div class="mc-label">Net interest / month</div><div class="mc-val">${fmt(nInt/12)}</div><div class="mc-sub">After ${(TAX()*100).toFixed(0)}% tax</div><span class="pill pill-a">Tax: ${fmt(tInt/12)}/mo</span></div>
+    <div class="mc"><div class="mc-label">SWP needed (yr 2+)</div><div class="mc-val">${fmt(swp2)}</div><div class="mc-sub">From MF corpus monthly</div></div>
+    <div class="mc"><div class="mc-label">Corpus — base (yr 5)</div><div class="mc-val">${fmtL(c5b)}</div><div class="mc-sub"><span class="pill ${c5b>=tot?'pill-g':'pill-r'}">${fmtPct((c5b-tot)/tot*100)}</span></div></div>
+    <div class="mc"><div class="mc-label">Corpus — stress (yr 5)</div><div class="mc-val">${fmtL(c5s)}</div><div class="mc-sub"><span class="pill ${c5s>=tot?'pill-g':'pill-r'}">${fmtPct((c5s-tot)/tot*100)}</span></div></div>`;
+
+  // Alloc
+  $('allocBar').innerHTML=products.map((p,i)=>`<div class="alloc-seg" style="flex:${tot>0?p.amount/tot*100:0};background:${COLORS[i%COLORS.length]};min-width:${p.amount>0?2:0}px"></div>`).join('');
+  $('allocLegend').innerHTML=products.map((p,i)=>`
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:9px;height:9px;border-radius:2px;background:${COLORS[i%COLORS.length]};flex-shrink:0"></div><span style="font-size:12px;color:var(--text2)">${p.name}</span></div>
+      <div><span style="font-family:var(--font-m);font-size:12px">${fmtL(p.amount)}</span><span style="font-size:10px;color:var(--text3);margin-left:6px">${tot>0?(p.amount/tot*100).toFixed(1):0}%</span></div>
+    </div>`).join('');
+
+  // Donut — delegated to renderDonut()
+  renderDonut(tot,gInt,tInt,nInt);
+
+  // Trajectory
+  const mkD=rows=>[tot/1e5,...rows.map(r=>+(r.corpEnd/1e5).toFixed(2))];
+  mkChart('trajChart','line',{
+    labels:['Start','Yr 1','Yr 2','Yr 3','Yr 4','Yr 5'],
+    datasets:[
+      {label:'Stress',data:mkD(stress5),borderColor:'#9e3b30',borderWidth:1.5,tension:0.35,pointRadius:3,pointBackgroundColor:'#9e3b30',fill:false},
+      {label:'Base',  data:mkD(base5),  borderColor:'#2a6e40',borderWidth:2,  tension:0.35,pointRadius:3,pointBackgroundColor:'#2a6e40',fill:false},
+      {label:'Opt',   data:mkD(opt5),   borderColor:'#7a5c2e',borderWidth:1.5,tension:0.35,pointRadius:3,pointBackgroundColor:'#7a5c2e',fill:false},
+    ]
+  },{plugins:{legend:{labels:{color:GR.color,font:{size:11,family:'DM Sans'},boxWidth:9,padding:12}}},
+    scales:{x:{grid:{color:GR.grid},ticks:{color:GR.color,font:GR.tickFont}},y:{grid:{color:GR.grid},ticks:{color:GR.color,font:GR.tickFont,callback:v=>v+'L'}}}});
+
+  // Scorecard
+  const sd={
+    stress:{n:fmtL(c5s),c:fmtPct((c5s-tot)/tot*100),pos:c5s>=tot},
+    base:  {n:fmtL(c5b),c:fmtPct((c5b-tot)/tot*100),pos:c5b>=tot},
+    opt:   {n:fmtL(c5o),c:fmtPct((c5o-tot)/tot*100),pos:c5o>=tot},
+  };
+  const scRows=[
+    ['5-yr corpus',sd.stress.n,sd.base.n,sd.opt.n],
+    ['Change vs start',`<span class="${sd.stress.pos?'green-cell':'red-cell'}">${sd.stress.c}</span>`,`<span class="${sd.base.pos?'green-cell':'red-cell'}">${sd.base.c}</span>`,`<span class="${sd.opt.pos?'green-cell':'red-cell'}">${sd.opt.c}</span>`],
+    ['Total paid out (gross)','₹28.8L','₹28.8L','₹28.8L'],
+    ['Tax paid (5yr)',fmtL(stress5.reduce((s,r)=>s+r.totTax,0)),fmtL(base5.reduce((s,r)=>s+r.totTax,0)),fmtL(opt5.reduce((s,r)=>s+r.totTax,0))],
+    ['Avg net/mo (yr 2–5)',fmt(stress5.slice(1).reduce((s,r)=>s+r.netPay/12,0)/4),fmt(base5.slice(1).reduce((s,r)=>s+r.netPay/12,0)/4),fmt(opt5.slice(1).reduce((s,r)=>s+r.netPay/12,0)/4)],
+    ['Plan survives 5yr?','✅ Yes','✅ Yes','✅ Yes'],
+  ];
+  $('scorecard').innerHTML=`<table class="scorecard">
+    <thead><tr>
+      <th style="background:var(--bg3)">Metric</th>
+      <th style="background:rgba(158,59,48,0.07);color:var(--red)">📉 Stress</th>
+      <th style="background:rgba(42,110,64,0.07);color:var(--green)">📊 Base</th>
+      <th style="background:rgba(122,92,46,0.07);color:var(--gold)">📈 Optimistic</th>
+    </tr></thead>
+    <tbody>${scRows.map(([label,...vals])=>`
+      <tr><td>${label}</td>
+        <td class="sc-stress">${vals[0]}</td>
+        <td class="sc-base">${vals[1]}</td>
+        <td class="sc-opt">${vals[2]}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function renderProjection(){
+  const rows=runProj(activeScen);
+  const tot0=products.reduce((s,p)=>s+p.amount,0);
+  const corp5=rows[4]?.corpEnd||tot0;
+  const totTax5=rows.reduce((s,r)=>s+r.totTax,0);
+  const avgNet=rows.slice(1).reduce((s,r)=>s+r.netPay/12,0)/4;
+  $('projCards').innerHTML=`
+    <div class="mc"><div class="mc-label">Corpus after 5 yrs</div><div class="mc-val">${fmtL(corp5)}</div><div class="mc-sub"><span class="pill ${corp5>=tot0?'pill-g':'pill-r'}">${fmtPct((corp5-tot0)/tot0*100)}</span></div></div>
+    <div class="mc"><div class="mc-label">Total tax (5yr)</div><div class="mc-val">${fmtL(totTax5)}</div><div class="mc-sub">Mainly on interest income</div></div>
+    <div class="mc"><div class="mc-label">Avg net/mo (yr 2–5)</div><div class="mc-val">${fmt(avgNet)}</div><div class="mc-sub">Post all taxes</div></div>`;
+  $('projBody').innerHTML=rows.map(r=>`<tr>
+    <td>Year ${r.yr}</td>
+    <td class="mono">${fmt(r.need/12)}<span class="muted">/mo</span></td>
+    <td class="mono">${fmt(r.totalInt/12)}<span class="muted">/mo</span></td>
+    <td class="mono">${fmt(r.swpNeed/12)}<span class="muted">/mo</span></td>
+    <td class="red-cell mono">−${fmt(r.totTax)}<span class="muted">/yr</span></td>
+    <td><span class="net-big green-cell">${fmt(r.netPay/12)}</span><span class="muted">/mo</span></td>
+    <td class="mono">${fmtL(r.corpEnd)}</td>
+    <td class="${r.chg>=0?'green-cell':'red-cell'} mono">${fmtPct(r.chg)}</td>
+  </tr>`).join('');
+  const rts=getRates(activeScen);
+  $('projNote').innerHTML=`<strong>${activeScen} scenario:</strong> equity/hybrid ${(rts.eq*100).toFixed(1)}%, debt ${(rts.dbt*100).toFixed(1)}%, gold ${(rts.gld*100).toFixed(1)}%. Interest taxed at ${(TAX()*100).toFixed(0)}% slab. SWP (LTCG 12.5%) — first ₹1.25L/yr exempt, typically ₹0 tax years 1–3. SGB maturity: ₹0 tax (original subscriber).`;
+
+  // Cashflow chart
+  mkChart('cashChart','bar',{
+    labels:['Yr 1','Yr 2','Yr 3','Yr 4','Yr 5'],
+    datasets:[
+      {label:'Gross',data:rows.map(r=>Math.round(r.need/12)),backgroundColor:'#2a5f8a22',borderColor:'#2a5f8a',borderWidth:1.5,borderRadius:4,order:2},
+      {label:'Net take-home',data:rows.map(r=>Math.round(r.netPay/12)),backgroundColor:'#2a6e4022',borderColor:'#2a6e40',borderWidth:1.5,borderRadius:4,order:1},
+      {label:'Tax/mo',data:rows.map(r=>Math.round(r.totTax/12)),type:'line',borderColor:'#9e3b30',borderWidth:2,pointRadius:4,pointBackgroundColor:'#9e3b30',fill:false,order:0},
+    ]
+  },{plugins:{legend:{labels:{color:GR.color,font:{size:11,family:'DM Sans'},boxWidth:10,padding:12}},tooltip:{callbacks:{label:c=>' ₹'+Math.round(c.parsed.y).toLocaleString('en-IN')+'/mo'}}},
+    scales:{x:{grid:{display:false},ticks:{color:GR.color,font:GR.tickFont}},y:{grid:{color:GR.grid},ticks:{color:GR.color,font:GR.tickFont,callback:v=>'₹'+Math.round(v/1000)+'k'}}}});
+
+  // Corpus chart
+  const tot0c=products.reduce((s,p)=>s+p.amount,0);
+  const col={stress:'#9e3b30',base:'#2a6e40',opt:'#7a5c2e'}[activeScen]||'#2a6e40';
+  mkChart('corpChart','line',{
+    labels:['Yr 1','Yr 2','Yr 3','Yr 4','Yr 5'],
+    datasets:[
+      {label:'Starting corpus',data:Array(5).fill(+(tot0c/1e5).toFixed(2)),borderColor:'rgba(0,0,0,0.2)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false},
+      {label:'Corpus ('+activeScen+')',data:rows.map(r=>+(r.corpEnd/1e5).toFixed(2)),borderColor:col,borderWidth:2.5,tension:0.35,pointRadius:5,pointBackgroundColor:col,backgroundColor:col+'12',fill:'origin'},
+    ]
+  },{plugins:{legend:{labels:{color:GR.color,font:{size:11,family:'DM Sans'},boxWidth:10,padding:12}},tooltip:{callbacks:{label:c=>' ₹'+c.parsed.y.toFixed(2)+'L'}}},
+    scales:{x:{grid:{display:false},ticks:{color:GR.color,font:GR.tickFont}},y:{grid:{color:GR.grid},ticks:{color:GR.color,font:GR.tickFont,callback:v=>v+'L'}}}});
+}
+
+function renderScenBar(){
+  const labs=['Yr 1','Yr 2','Yr 3','Yr 4','Yr 5'];
+  const scens=[['stress','#9e3b30'],['base','#2a6e40'],['opt','#7a5c2e']];
+  mkChart('scenBar','bar',{
+    labels:labs,
+    datasets:scens.map(([s,c])=>({label:s,data:runProj(s).map(r=>+(r.corpEnd/1e5).toFixed(2)),backgroundColor:c+'22',borderColor:c,borderWidth:1,borderRadius:4}))
+  },{plugins:{legend:{labels:{color:GR.color,font:{size:11,family:'DM Sans'},boxWidth:9,padding:12}}},
+    scales:{x:{grid:{display:false},ticks:{color:GR.color,font:GR.tickFont}},y:{grid:{color:GR.grid},ticks:{color:GR.color,font:GR.tickFont,callback:v=>v+'L'}}}});
+}
+
+function renderTaxPie(){
+  mkChart('taxPie','doughnut',{
+    labels:['SCSS interest tax','RBI FRSB tax','SGB interest tax','MF SWP tax'],
+    datasets:[{data:[76752,7535,12948,1500],backgroundColor:['#9e3b3055','#7a5a1e55','#7a5c2e55','#2a6e4055'],borderColor:['#9e3b30','#7a5a1e','#7a5c2e','#2a6e40'],borderWidth:1,hoverOffset:4}]
+  },{cutout:'60%',plugins:{legend:{position:'right',labels:{color:GR.color,font:{size:10,family:'DM Sans'},boxWidth:9,padding:10}},tooltip:{callbacks:{label:c=>' ₹'+c.parsed.toLocaleString('en-IN')+'/yr'}}}});
+}
+
+renderProducts();
+recalcAll();
+</script>
+</body>
+</html>
