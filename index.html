@@ -203,6 +203,18 @@ tr:hover td{background:rgba(0,0,0,0.015)}
 .tax-table td:first-child{font-weight:500;color:var(--text)}
 .row-total td{font-weight:600;color:var(--gold);background:var(--bg3)}
 
+.strategy-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px 20px;margin-bottom:10px;box-shadow:var(--shadow)}
+.strategy-year{display:flex;align-items:flex-start;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)}
+.strategy-year:last-child{border-bottom:none}
+.yr-label{font-size:13px;font-weight:600;min-width:60px;padding-top:8px;flex-shrink:0}
+.yr-sources{display:flex;flex-direction:column;gap:8px;flex:1}
+.yr-source-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.yr-source-row select{width:220px;font-size:12px}
+.yr-source-row input[type=number]{width:70px;font-size:12px;font-family:var(--font-m)}
+.yr-pct-label{font-size:11px;color:var(--text3);white-space:nowrap}
+.add-source-btn{font-size:11px;padding:4px 10px;border:1px dashed var(--border2);border-radius:var(--r);background:transparent;color:var(--text3);cursor:pointer}
+.add-source-btn:hover{border-color:var(--gold);color:var(--gold)}
+.strategy-hint{font-size:11px;color:var(--text3);background:rgba(122,92,46,0.06);border:1px solid rgba(122,92,46,0.15);border-radius:var(--r);padding:8px 12px;margin-top:8px;line-height:1.6}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 </style>
@@ -275,6 +287,18 @@ tr:hover td{background:rgba(0,0,0,0.015)}
   <div class="nav-item" onclick="go('projection')">
     <svg class="nav-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="1" width="12" height="12" rx="1"/><line x1="3.5" y1="10" x2="3.5" y2="6"/><line x1="6.5" y1="10" x2="6.5" y2="4"/><line x1="9.5" y1="10" x2="9.5" y2="7"/><line x1="12.5" y1="10" x2="12.5" y2="3"/></svg>
     5-year projection
+  </div>
+  <div class="nav-item" onclick="go('strategy')">
+    <svg class="nav-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="3" cy="7" r="2"/><circle cx="11" cy="3" r="2"/><circle cx="11" cy="11" r="2"/><line x1="5" y1="6" x2="9" y2="4"/><line x1="5" y1="8" x2="9" y2="10"/></svg>
+    Withdrawal strategy
+  </div>
+  <div class="nav-item" onclick="go('details')">
+    <svg class="nav-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="1" width="12" height="12" rx="1"/><line x1="3" y1="4" x2="11" y2="4"/><line x1="3" y1="7" x2="11" y2="7"/><line x1="3" y1="10" x2="7" y2="10"/></svg>
+    Monthly detail
+  </div>
+  <div class="nav-item" onclick="go('annual')">
+    <svg class="nav-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="1" width="12" height="12" rx="1"/><line x1="3" y1="4" x2="11" y2="4"/><line x1="3" y1="7" x2="9" y2="7"/><line x1="3" y1="10" x2="11" y2="10"/><circle cx="11" cy="7" r="2" fill="currentColor"/></svg>
+    Annual breakdown
   </div>
   <div class="nav-divider"></div>
   <div class="nav-section-label">Reference</div>
@@ -410,19 +434,24 @@ tr:hover td{background:rgba(0,0,0,0.015)}
   <div class="g3" id="projCards" style="margin-bottom:18px"></div>
   <div class="tbl-wrap">
     <table><thead><tr>
-      <th>Year</th><th>Gross payout</th><th>Interest</th><th>SWP from MFs</th>
-      <th style="color:var(--red)">Tax paid</th><th style="color:var(--green)">Net take-home</th>
+      <th>Year</th><th>Net target</th><th>Net interest/mo</th><th>SWP from MFs</th>
+      <th style="color:var(--red)">Interest tax/mo</th>
+      <th style="color:var(--red)">SWP tax/yr</th>
+      <th style="color:var(--amber)">Tax % of payout</th>
+      <th style="color:var(--green)">Net take-home</th>
       <th>Corpus end</th><th>vs start</th>
     </tr></thead><tbody id="projBody"></tbody></table>
   </div>
-  <div class="card" style="margin-bottom:14px">
+  <div class="card" style="margin-bottom:14px" id="breakdownCard">
     <div class="card-title">Monthly income breakdown by period</div>
-    <table><thead><tr><th>Period</th><th>Gross target</th><th>Interest tax/yr</th><th>SWP tax/yr</th><th>Total tax/yr</th><th style="color:var(--green)">Net monthly</th><th>Source</th></tr></thead>
-    <tbody>
-      <tr><td>Year 1</td><td class="mono">₹40,000</td><td class="red-cell mono">₹97,235</td><td class="mono">₹0</td><td class="red-cell mono">₹97,235</td><td class="green-cell"><span class="net-big">₹31,638</span></td><td class="muted">Interest + existing MF SWP (LTCG-exempt)</td></tr>
-      <tr><td>Year 2–3</td><td class="mono">₹50,000</td><td class="red-cell mono">₹97,235</td><td class="mono">₹1,500</td><td class="red-cell mono">₹98,735</td><td class="green-cell"><span class="net-big">₹41,939</span></td><td class="muted">Interest + Balanced Adv SWP (within LTCG exemption)</td></tr>
-      <tr><td>Year 4–5</td><td class="mono">₹50,000</td><td class="red-cell mono">₹97,235</td><td class="mono">₹3,000</td><td class="red-cell mono">₹1,00,235</td><td class="green-cell"><span class="net-big">₹41,636</span></td><td class="muted">Interest + Balanced Adv SWP (gain fraction rising)</td></tr>
-    </tbody></table>
+    <table><thead><tr>
+      <th>Period</th><th>Net target</th><th>Net interest/mo</th>
+      <th>SWP from MFs/mo</th>
+      <th style="color:var(--red)">Interest tax/mo</th>
+      <th style="color:var(--green)">Net take-home</th>
+      <th>SWP source</th>
+    </tr></thead>
+    <tbody id="breakdownBody"></tbody></table>
   </div>
   <div class="g2">
     <div class="card"><div class="card-title">Monthly cashflow — gross vs net</div><div class="ch"><canvas id="cashChart"></canvas></div></div>
@@ -470,6 +499,20 @@ tr:hover td{background:rgba(0,0,0,0.015)}
   <div class="card"><div class="card-title">Market dip rule</div><p style="font-size:12px;color:var(--text2);line-height:1.7">If equity falls <strong style="color:var(--text)">&gt;15%</strong>, pause the Balanced Advantage SWP and draw fully from the debt buffer. Your ₹5L debt fund can sustain full payout for ~20 months. Restart hybrid SWP once markets recover &gt;10% from the trough.</p></div>
 </div>
 
+<!-- MONTHLY DETAIL -->
+<div class="panel" id="panel-details">
+  <div class="page-title">Monthly detail</div>
+  <div class="page-sub">Value of each instrument and payout breakdown — year by year</div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+    <div class="scen-tabs" style="margin-bottom:0">
+      <button class="st act-stress" id="dScenStress" onclick="setDetailScen('stress',this)">📉 Stress</button>
+      <button class="st" id="dScenBase" onclick="setDetailScen('base',this)">📊 Base</button>
+      <button class="st" id="dScenOpt" onclick="setDetailScen('opt',this)">📈 Optimistic</button>
+    </div>
+  </div>
+  <div id="detailContent"></div>
+</div>
+
 <!-- KEY DATES -->
 <div class="panel" id="panel-keydates">
   <div class="page-title">Key dates &amp; actions</div>
@@ -482,6 +525,49 @@ tr:hover td{background:rgba(0,0,0,0.015)}
     <div class="guide-row"><div class="guide-when">Equity ↓ 15%+</div><div><div class="guide-action">Pause hybrid SWP, use debt buffer</div><div class="guide-why">Never sell equity at a loss. Pause Balanced Advantage SWP via your AMC's portal (takes 2 min). Draw from debt fund. Restart when markets recover.</div></div></div>
   </div>
   <div class="info-box"><strong>Capital preservation rule:</strong> Interest alone (~₹26k/mo net) covers most of Year 1. SWP from growth funds covers the rest. Follow the waterfall order and pause equity SWP during corrections — corpus stays stable in the base case.</div>
+</div>
+
+<!-- WITHDRAWAL STRATEGY -->
+<div class="panel" id="panel-strategy">
+  <div class="page-title">Withdrawal strategy</div>
+  <div class="page-sub">Choose which products to draw SWP from, in what proportion, for each year. The interest income always comes first — this only controls how the SWP gap is filled.</div>
+
+  <div class="strategy-hint" style="margin-bottom:18px">
+    <strong>How it works:</strong> Your fixed interest (SCSS + RBI bond + SGB) arrives automatically each month.
+    The remaining gap to hit your net target is the SWP. You decide which product(s) to withdraw from each year.
+    <br><br>
+    <strong>Tax tip:</strong> Arbitrage funds = equity tax (LTCG/STCG) but low risk — ideal for early years.
+    After 1 year they qualify for LTCG 12.5% (vs short-term 20%). Pull from these first, then switch to
+    Balanced Advantage / hybrid for later years.
+  </div>
+
+  <div id="strategyYears"></div>
+
+  <div style="margin-top:20px;display:flex;gap:10px">
+    <button class="btn btn-gold" onclick="applyStrategy()">Apply strategy to projections →</button>
+    <button class="btn" onclick="resetStrategy()">Reset to auto</button>
+  </div>
+
+  <div id="strategyResult" style="margin-top:18px"></div>
+</div>
+
+<!-- ANNUAL BREAKDOWN -->
+<div class="panel" id="panel-annual">
+  <div class="page-title">Annual breakdown</div>
+  <div class="page-sub">Monthly withdrawal, interest, SWP and tax — summed to annual totals for every year</div>
+
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+    <div class="scen-tabs" style="margin-bottom:0">
+      <button class="st act-stress" onclick="setAnnualScen('stress',this)">📉 Stress</button>
+      <button class="st" onclick="setAnnualScen('base',this)">📊 Base</button>
+      <button class="st" onclick="setAnnualScen('opt',this)">📈 Optimistic</button>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn" onclick="exportCSV()" style="font-size:12px">⬇ Export CSV</button>
+    </div>
+  </div>
+
+  <div id="annualContent"></div>
 </div>
 
 </main>
@@ -499,14 +585,25 @@ const TYPE_META={
 };
 
 let products=[
-  {id:1,name:'SCSS @ 8.2%',         amount:3000000,intRate:8.2, type:'fixed',   ltcg:false},
-  {id:2,name:'Existing Equity MF',   amount:500000, intRate:0,   type:'equity',  ltcg:true},
-  {id:3,name:'RBI Floating Bond',    amount:300000, intRate:8.05,type:'fixed',   ltcg:false},
-  {id:4,name:'Debt Fund (buffer)',   amount:500000, intRate:0,   type:'debt_mf', ltcg:false},
-  {id:5,name:'Balanced Advantage MF',amount:1540000,intRate:0,   type:'hybrid',  ltcg:false},
-  {id:6,name:'SGB (Sovereign Gold)', amount:1660000,intRate:2.5, type:'gold',    ltcg:true},
+  {id:1,name:'SCSS @ 8.2%',         amount:3000000,intRate:8.2, type:'fixed',   ltcg:false, gainFrac:0},
+  {id:2,name:'Existing Equity MF',   amount:500000, intRate:0,   type:'equity',  ltcg:true,  gainFrac:0.5},
+  {id:3,name:'RBI Floating Bond',    amount:300000, intRate:8.05,type:'fixed',   ltcg:false, gainFrac:0},
+  {id:4,name:'Debt Fund (buffer)',   amount:500000, intRate:0,   type:'debt_mf', ltcg:false, gainFrac:0},
+  {id:5,name:'Balanced Advantage MF',amount:1540000,intRate:0,   type:'hybrid',  ltcg:false, gainFrac:0},
+  {id:6,name:'SGB (Sovereign Gold)', amount:1660000,intRate:2.5, type:'gold',    ltcg:true,  gainFrac:0},
 ];
 let nid=7, activeScen='stress', donutYear=1;
+
+// Withdrawal strategy: for each year, list of {sourceId, pct}
+// sourceId = product id OR 'interest' (for interest income)
+// pct = % of the SWP gap to draw from this source (must total 100%)
+let withdrawalStrategy = {
+  1: [{sourceId:'auto', pct:100}],  // Year 1: auto (existing LTCG MF first)
+  2: [{sourceId:'auto', pct:100}],  // Year 2: auto
+  3: [{sourceId:'auto', pct:100}],
+  4: [{sourceId:'auto', pct:100}],
+  5: [{sourceId:'auto', pct:100}],
+};
 const charts={};
 
 const $=id=>document.getElementById(id);
@@ -531,36 +628,81 @@ function gRate(p,r){
   return 0;
 }
 
-function runProj(scen){
+function runProj(scen, monthly=false){
   const r=getRates(scen);
+  // Interest income is fixed (SCSS, RBI, SGB don't change principal)
+  // so grossUp is constant throughout
   const annTaxEst=products.reduce((s,p)=>s+taxInt(p),0);
   const grossUp=annTaxEst/12;
   const t1=(gv('t1')+grossUp)*12, t2=(gv('t2')+grossUp)*12;
   const tot0=products.reduce((s,p)=>s+p.amount,0);
   let st=products.map(p=>({...p,cur:p.amount}));
   const rows=[];
+  const monthlyRows=[];
+
   for(let yr=1;yr<=5;yr++){
     const need=yr===1?t1:t2;
-    const totalInt=st.reduce((s,p)=>s+p.cur*(p.intRate/100),0);
-    const taxI=st.reduce((s,p)=>(p.type==='fixed'||p.type==='gold')?s+p.cur*(p.intRate/100)*TAX():s,0);
+    // Fixed income (SCSS, RBI bond) and gold (SGB) principal stays constant
+    // Only equity/hybrid/debt MFs contribute to SWP pool
+    const fixedInt=st.reduce((s,p)=>(p.type==='fixed'||p.type==='gold')?s+p.cur*(p.intRate/100):s,0);
+    const taxI=fixedInt*TAX();
+    const totalInt=fixedInt; // only fixed/gold pay interest cash
     const swpNeed=Math.max(0,need-totalInt);
-    const mfTot=st.filter(p=>p.type!=='fixed').reduce((s,p)=>s+p.cur,0);
+    // SWP pool: only MF products (NOT gold/SGB which is held to maturity)
+    const mfTot=st.filter(p=>p.type!=='fixed'&&p.type!=='gold').reduce((s,p)=>s+p.cur,0);
     let ltcgUsed=0,swpTax=0;
+    const yearSnapshot=[];
+
     st=st.map(p=>{
       const gr=gRate(p,r);
+      // Fixed income: no change in principal, no growth
       if(p.type==='fixed') return{...p};
+      // Gold/SGB: grows with gold rate but NOT drawn via SWP (held to maturity)
+      if(p.type==='gold'){
+        const newCur=p.cur*(1+gr);
+        yearSnapshot.push({...p,cur:newCur,swp:0,int:p.cur*(p.intRate/100)/12});
+        return{...p,cur:newCur};
+      }
+      // MF products: subject to SWP
       const share=mfTot>0?p.cur/mfTot:0;
       const mySwp=Math.min(p.cur,swpNeed*share);
-      const gf=(p.ltcg||yr>1)?Math.min(0.08+yr*0.04,0.5):0.15;
+      // Corrected gain fraction per product type:
+      // - Equity/hybrid held >1yr (ltcg=true, already doubled): use gainFrac field (default 0.5)
+      // - Equity/hybrid (newly bought): NAV-based approximation, grows with years
+      // - Debt MF: actual debt growth rate fraction (return/1+return)
+      let gf;
+      const dr=getRates(scen).dbt; // debt growth rate for this scenario
+      if(p.type==='debt_mf'){
+        gf = dr/(1+dr);  // e.g. 7%/107% ≈ 6.5%
+      } else if(p.ltcg && yr===1 && (p.gainFrac||0)>0){
+        gf = p.gainFrac;  // use actual gain fraction for pre-held LTCG funds
+      } else {
+        const eqR=getRates(scen).eq;
+        gf = Math.min(eqR*yr/(1+eqR*yr), 0.45);  // NAV-based, grows each year
+      }
       const gain=mySwp*gf;
       const isLTCG=p.type==='equity'||p.type==='hybrid';
       if(isLTCG){const t=Math.max(0,gain-Math.max(0,LTCG_EXP-ltcgUsed));ltcgUsed+=gain;swpTax+=t*LTCG_RATE;}
       else if(p.type==='debt_mf') swpTax+=gain*TAX();
-      return{...p,cur:Math.max(0,p.cur*(1+gr)-mySwp)};
+      const newCur=Math.max(0,p.cur*(1+gr)-mySwp);
+      yearSnapshot.push({...p,cur:newCur,swp:mySwp/12,int:0});
+      return{...p,cur:newCur};
     });
+    // Add fixed products to snapshot
+    st.forEach(p=>{
+      if(p.type==='fixed') yearSnapshot.push({...p,swp:0,int:p.cur*(p.intRate/100)/12});
+    });
+
     const corpEnd=st.reduce((s,p)=>s+Math.max(0,p.cur),0);
     const totTax=taxI+swpTax, netPay=need-totTax;
-    rows.push({yr,need,totalInt,taxI,swpNeed,swpTax,totTax,netPay,corpEnd,chg:(corpEnd-tot0)/tot0*100});
+    const netTarget=yr===1?gv('t1'):gv('t2');
+    // Net interest is constant since fixed/gold principals don't change
+    const netIntMo=(fixedInt-taxI)/12;
+    const swpFromMFs=Math.max(0,netTarget-netIntMo);
+    rows.push({yr,need,totalInt,taxI,swpNeed,swpTax,totTax,netPay,corpEnd,
+               chg:(corpEnd-tot0)/tot0*100,
+               netTarget,netIntMo,swpFromMFs,taxIntMo:taxI/12,
+               snapshot:yearSnapshot});
   }
   return rows;
 }
@@ -655,9 +797,20 @@ function renderProducts(){
             ${Object.entries(TYPE_META).map(([k,v])=>`<option value="${k}"${k===p.type?' selected':''}>${v.label}</option>`).join('')}
           </select></div>
       </div>
-      ${TYPE_META[p.type].grow?`<label class="chk-row">
-        <input type="checkbox" ${p.ltcg?'checked':''} onchange="updP(${p.id},'ltcg',this.checked)">
-        <span class="chk-label">Held &gt;1 year already — LTCG-qualified from day 1</span></label>`:''}
+      ${TYPE_META[p.type].grow?`<div style="display:flex;align-items:center;gap:16px;margin-top:9px;flex-wrap:wrap">
+        <label class="chk-row" style="margin-top:0">
+          <input type="checkbox" ${p.ltcg?'checked':''} onchange="updP(${p.id},'ltcg',this.checked)">
+          <span class="chk-label">Held &gt;1 year already — LTCG-qualified from day 1</span>
+        </label>
+        ${p.ltcg?`<div class="f-group" style="flex-direction:row;align-items:center;gap:7px;margin-top:0">
+          <span class="f-label" style="white-space:nowrap">Gain fraction %</span>
+          <input type="number" value="${Math.round((p.gainFrac||0)*100)}" min="0" max="100" step="5"
+            style="width:70px" placeholder="e.g. 50"
+            oninput="updP(${p.id},'gainFrac',+this.value/100)"
+            title="What % of each withdrawal is taxable gain? (e.g. 50 if fund has doubled)">
+          <span style="font-size:10px;color:var(--text3)">% of SWP is gain</span>
+        </div>`:''}
+      </div>`:''}
       <div class="tax-row">
         <span class="tax-tag">${TYPE_META[p.type].tax}</span>
         ${annInt(p)>0?`<span class="int-info">${fmt(annInt(p))}/yr gross → ${fmt(annInt(p)-taxInt(p))}/yr net after tax</span>`:''}
@@ -666,7 +819,7 @@ function renderProducts(){
 }
 
 // ── Navigation ────────────────────────────────────────────────────────────────
-const PANEL_ORDER=['overview','portfolio','scenarios','projection','taxguide','waterfall','keydates'];
+const PANEL_ORDER=['overview','portfolio','scenarios','projection','strategy','details','annual','taxguide','waterfall','keydates'];
 function go(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   $('panel-'+name).classList.add('active');
@@ -681,6 +834,9 @@ function go(name){
   if(name==='projection') renderProjection();
   if(name==='scenarios') renderScenBar();
   if(name==='taxguide') renderTaxPie();
+  if(name==='strategy') renderStrategyPanel();
+  if(name==='details') renderDetails();
+  if(name==='annual') renderAnnual();
 }
 function showScen(s,btn){
   activeScen=s;
@@ -852,29 +1008,49 @@ function renderProjection(){
     <div class="mc"><div class="mc-label">Corpus after 5 yrs</div><div class="mc-val">${fmtL(corp5)}</div><div class="mc-sub"><span class="pill ${corp5>=tot0?'pill-g':'pill-r'}">${fmtPct((corp5-tot0)/tot0*100)}</span></div></div>
     <div class="mc"><div class="mc-label">Total tax (5yr)</div><div class="mc-val">${fmtL(totTax5)}</div><div class="mc-sub">Mainly on interest income</div></div>
     <div class="mc"><div class="mc-label">Avg net/mo (yr 2–5)</div><div class="mc-val">${fmt(avgNet)}</div><div class="mc-sub">Post all taxes</div></div>`;
-  $('projBody').innerHTML=rows.map(r=>`<tr>
+  $('projBody').innerHTML=rows.map(r=>{
+    const totTaxMo=(r.totTax)/12;
+    const taxPct=r.netTarget>0?(totTaxMo/r.netTarget*100):0;
+    return `<tr>
     <td>Year ${r.yr}</td>
-    <td class="mono">${fmt(r.need/12)}<span class="muted">/mo</span></td>
-    <td class="mono">${fmt(r.totalInt/12)}<span class="muted">/mo</span></td>
-    <td class="mono">${fmt(r.swpNeed/12)}<span class="muted">/mo</span></td>
-    <td class="red-cell mono">−${fmt(r.totTax)}<span class="muted">/yr</span></td>
-    <td><span class="net-big green-cell">${fmt(r.netPay/12)}</span><span class="muted">/mo</span></td>
+    <td class="mono">${fmt(r.netTarget)}<span class="muted">/mo</span></td>
+    <td class="mono">${fmt(r.netIntMo)}<span class="muted">/mo</span></td>
+    <td class="mono">${fmt(r.swpFromMFs)}<span class="muted">/mo</span></td>
+    <td class="red-cell mono">−${fmt(r.taxIntMo)}<span class="muted">/mo</span></td>
+    <td class="red-cell mono">${r.swpTax>0?fmt(r.swpTax):'—'}<span class="muted">/yr</span></td>
+    <td class="mono" style="color:var(--amber)">${taxPct.toFixed(1)}%</td>
+    <td><span class="net-big green-cell">${fmt(r.netTarget)}</span><span class="muted">/mo</span></td>
     <td class="mono">${fmtL(r.corpEnd)}</td>
     <td class="${r.chg>=0?'green-cell':'red-cell'} mono">${fmtPct(r.chg)}</td>
-  </tr>`).join('');
+  </tr>`;}).join('');
   const rts=getRates(activeScen);
+  renderBreakdown(rows);
   $('projNote').innerHTML=`<strong>${activeScen} scenario:</strong> equity/hybrid ${(rts.eq*100).toFixed(1)}%, debt ${(rts.dbt*100).toFixed(1)}%, gold ${(rts.gld*100).toFixed(1)}%. Interest taxed at ${(TAX()*100).toFixed(0)}% slab. SWP (LTCG 12.5%) — first ₹1.25L/yr exempt, typically ₹0 tax years 1–3. SGB maturity: ₹0 tax (original subscriber).`;
 
-  // Cashflow chart
+  // Cashflow chart — stacked: net interest + SWP = target payout
   mkChart('cashChart','bar',{
     labels:['Yr 1','Yr 2','Yr 3','Yr 4','Yr 5'],
     datasets:[
-      {label:'Gross',data:rows.map(r=>Math.round(r.need/12)),backgroundColor:'#2a5f8a22',borderColor:'#2a5f8a',borderWidth:1.5,borderRadius:4,order:2},
-      {label:'Net take-home',data:rows.map(r=>Math.round(r.netPay/12)),backgroundColor:'#2a6e4022',borderColor:'#2a6e40',borderWidth:1.5,borderRadius:4,order:1},
-      {label:'Tax/mo',data:rows.map(r=>Math.round(r.totTax/12)),type:'line',borderColor:'#9e3b30',borderWidth:2,pointRadius:4,pointBackgroundColor:'#9e3b30',fill:false,order:0},
+      {label:'Net interest (post-tax)',
+       data:rows.map(r=>Math.round(r.netIntMo)),
+       backgroundColor:'#7a5c2e55',borderColor:'#7a5c2e',borderWidth:1,borderRadius:0,stack:'payout'},
+      {label:'SWP from MFs',
+       data:rows.map(r=>Math.round(r.swpFromMFs)),
+       backgroundColor:'#2a5f8a44',borderColor:'#2a5f8a',borderWidth:1,borderRadius:4,stack:'payout'},
+      {label:'Interest tax cost',
+       data:rows.map(r=>Math.round(r.taxIntMo)),
+       type:'line',borderColor:'#9e3b30',borderWidth:2,pointRadius:4,
+       pointBackgroundColor:'#9e3b30',fill:false,yAxisID:'y'},
     ]
-  },{plugins:{legend:{labels:{color:GR.color,font:{size:11,family:'DM Sans'},boxWidth:10,padding:12}},tooltip:{callbacks:{label:c=>' ₹'+Math.round(c.parsed.y).toLocaleString('en-IN')+'/mo'}}},
-    scales:{x:{grid:{display:false},ticks:{color:GR.color,font:GR.tickFont}},y:{grid:{color:GR.grid},ticks:{color:GR.color,font:GR.tickFont,callback:v=>'₹'+Math.round(v/1000)+'k'}}}});
+  },{plugins:{
+      legend:{labels:{color:GR.color,font:{size:11,family:'DM Sans'},boxWidth:10,padding:12}},
+      tooltip:{mode:'index',callbacks:{label:c=>' ₹'+Math.round(c.parsed.y||c.parsed).toLocaleString('en-IN')+'/mo',
+        footer:items=>{ const tot=items.filter(i=>i.dataset.stack).reduce((s,i)=>s+i.parsed.y,0); return tot>0?'Total payout: ₹'+Math.round(tot).toLocaleString('en-IN')+'/mo':''; }}}},
+    scales:{
+      x:{grid:{display:false},ticks:{color:GR.color,font:GR.tickFont},stacked:true},
+      y:{grid:{color:GR.grid},ticks:{color:GR.color,font:GR.tickFont,callback:v=>'₹'+Math.round(v/1000)+'k'},stacked:true},
+    }
+  });
 
   // Corpus chart
   const tot0c=products.reduce((s,p)=>s+p.amount,0);
@@ -889,6 +1065,45 @@ function renderProjection(){
     scales:{x:{grid:{display:false},ticks:{color:GR.color,font:GR.tickFont}},y:{grid:{color:GR.grid},ticks:{color:GR.color,font:GR.tickFont,callback:v=>v+'L'}}}});
 }
 
+function renderBreakdown(rows){
+  const el=$('breakdownBody');
+  if(!el) return;
+  // Group rows: yr1 alone, yr2+3 grouped, yr4+5 grouped
+  const groups=[
+    {label:'Year 1',       yrs:[1]},
+    {label:'Year 2–3',     yrs:[2,3]},
+    {label:'Year 4–5',     yrs:[4,5]},
+  ];
+  const swpSources={
+    1:'Existing equity MF (LTCG-qualified, held >1yr — zero tax)',
+    2:'Balanced Advantage MF (LTCG, within ₹1.25L annual exemption)',
+    3:'Balanced Advantage MF (LTCG, gain fraction rising)',
+    4:'Balanced Advantage 80% + Debt fund 20% (minimal LTCG tax)',
+    5:'Balanced Advantage 80% + Debt fund 20% (small LTCG tax)',
+  };
+  el.innerHTML = groups.map(g=>{
+    // Average values across years in group
+    const groupRows = rows.filter(r=>g.yrs.includes(r.yr));
+    const avg = obj => g.yrs.reduce((s,yr)=>{
+      const r=rows.find(x=>x.yr===yr); return r?s+r[obj]:s;
+    },0)/g.yrs.length;
+    const netTarget = avg('netTarget');
+    const netIntMo  = avg('netIntMo');
+    const swpMFs    = avg('swpFromMFs');
+    const taxMo     = avg('taxIntMo');
+    const source    = swpSources[g.yrs[0]] || '—';
+    return `<tr>
+      <td style="font-weight:500">${g.label}</td>
+      <td class="mono">${fmt(netTarget)}</td>
+      <td class="mono">${fmt(netIntMo)}</td>
+      <td class="mono">${fmt(swpMFs)}</td>
+      <td class="red-cell mono">₹${Math.round(taxMo).toLocaleString('en-IN')}</td>
+      <td class="green-cell"><span class="net-big">${fmt(netTarget)}</span></td>
+      <td class="muted" style="font-size:11px">${source}</td>
+    </tr>`;
+  }).join('');
+}
+
 function renderScenBar(){
   const labs=['Yr 1','Yr 2','Yr 3','Yr 4','Yr 5'];
   const scens=[['stress','#9e3b30'],['base','#2a6e40'],['opt','#7a5c2e']];
@@ -897,6 +1112,535 @@ function renderScenBar(){
     datasets:scens.map(([s,c])=>({label:s,data:runProj(s).map(r=>+(r.corpEnd/1e5).toFixed(2)),backgroundColor:c+'22',borderColor:c,borderWidth:1,borderRadius:4}))
   },{plugins:{legend:{labels:{color:GR.color,font:{size:11,family:'DM Sans'},boxWidth:9,padding:12}}},
     scales:{x:{grid:{display:false},ticks:{color:GR.color,font:GR.tickFont}},y:{grid:{color:GR.grid},ticks:{color:GR.color,font:GR.tickFont,callback:v=>v+'L'}}}});
+}
+
+let detailScen = 'stress';
+
+function setDetailScen(scen, btn){
+  detailScen = scen;
+  document.querySelectorAll('#panel-details .st').forEach(b=>b.className='st');
+  if(btn) btn.className='st act-'+scen;
+  renderDetails();
+}
+
+function renderDetails(){
+  const rows = runProj(detailScen);
+  const tot0 = products.reduce((s,p)=>s+p.amount,0);
+
+  // Build product columns from initial products
+  const prodCols = products.map(p=>p.name);
+
+  let html = '';
+  rows.forEach(row=>{
+    const snap = row.snapshot || [];
+    html += `
+    <div style="margin-bottom:22px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:12px">
+        <span>Year ${row.yr}</span>
+        <span style="font-size:11px;font-weight:400;color:var(--text2)">
+          Net target: ${fmt(row.netTarget)}/mo &nbsp;·&nbsp;
+          Net interest: ${fmt(row.netIntMo)}/mo &nbsp;·&nbsp;
+          SWP: ${fmt(row.swpFromMFs)}/mo &nbsp;·&nbsp;
+          Corpus end: ${fmtL(row.corpEnd)}
+          <span class="${row.chg>=0?'green-cell':'red-cell'}" style="font-weight:500"> (${fmtPct(row.chg)})</span>
+        </span>
+      </div>
+      <div class="tbl-wrap" style="margin-bottom:0">
+        <table>
+          <thead><tr>
+            <th style="text-align:left">Product</th>
+            <th>Type</th>
+            <th>Value at year end</th>
+            <th>Annual interest</th>
+            <th>Monthly interest</th>
+            <th>SWP drawn/mo</th>
+            <th>Net contribution/mo</th>
+          </tr></thead>
+          <tbody>
+            ${snap.map(p=>{
+              const annualInt = p.cur*(p.intRate||0)/100;
+              const moInt = annualInt/12;
+              const taxOnInt = (p.type==='fixed'||p.type==='gold')? moInt*TAX() : 0;
+              const netMoInt = moInt - taxOnInt;
+              const contribution = netMoInt + (p.swp||0);
+              return `<tr>
+                <td>${p.name}</td>
+                <td><span class="type-tag ${TYPE_META[p.type]?.cls||''}" style="font-size:10px">${TYPE_META[p.type]?.label||p.type}</span></td>
+                <td class="mono">${fmtL(p.cur)}</td>
+                <td class="mono">${annualInt>0?fmt(annualInt):'—'}</td>
+                <td class="mono">${moInt>0?fmt(moInt):'—'}</td>
+                <td class="mono ${(p.swp||0)>0?'green-cell':''}">${(p.swp||0)>0?fmt(p.swp||0):'—'}</td>
+                <td class="mono">${fmt(contribution)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="font-weight:600;background:var(--bg3)">
+              <td colspan="2">Total</td>
+              <td class="mono">${fmtL(row.corpEnd)}</td>
+              <td class="mono">${fmt(snap.reduce((s,p)=>s+p.cur*(p.intRate||0)/100,0))}</td>
+              <td class="mono">${fmt(snap.reduce((s,p)=>s+p.cur*(p.intRate||0)/100/12,0))}</td>
+              <td class="mono green-cell">${fmt(snap.reduce((s,p)=>s+(p.swp||0),0))}</td>
+              <td class="mono" style="color:var(--green);font-weight:600">${fmt(row.netTarget)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>`;
+  });
+
+  // Summary table across all years
+  html += `
+  <div class="card" style="margin-top:4px">
+    <div class="card-title">5-year summary — corpus by instrument</div>
+    <table>
+      <thead><tr>
+        <th style="text-align:left">Product</th>
+        <th>Type</th>
+        <th>Start value</th>
+        ${rows.map(r=>`<th>End yr ${r.yr}</th>`).join('')}
+        <th>5yr change</th>
+      </tr></thead>
+      <tbody>
+        ${products.map(p=>{
+          const startVal = p.amount;
+          const endVals = rows.map(r=>{
+            const s = (r.snapshot||[]).find(x=>x.id===p.id);
+            return s ? s.cur : 0;
+          });
+          const finalVal = endVals[endVals.length-1];
+          const chg = startVal>0 ? (finalVal-startVal)/startVal*100 : 0;
+          return `<tr>
+            <td>${p.name}</td>
+            <td><span class="type-tag ${TYPE_META[p.type]?.cls||''}" style="font-size:10px">${TYPE_META[p.type]?.label||p.type}</span></td>
+            <td class="mono">${fmtL(startVal)}</td>
+            ${endVals.map(v=>`<td class="mono">${fmtL(v)}</td>`).join('')}
+            <td class="mono ${chg>=0?'green-cell':'red-cell'}">${fmtPct(chg)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+
+  $('detailContent').innerHTML = html;
+}
+
+let annualScen = 'stress';
+
+function setAnnualScen(scen, btn){
+  annualScen = scen;
+  document.querySelectorAll('#panel-annual .st').forEach(b=>b.className='st');
+  if(btn) btn.className='st act-'+scen;
+  renderAnnual();
+}
+
+function renderAnnual(){
+  const rows = runProj(annualScen);
+  const tot0 = products.reduce((s,p)=>s+p.amount,0);
+  const TAX_R = TAX();
+
+  // For each year, compute 12 months of data (month-level granularity)
+  // Each month: same interest (fixed), SWP distributed evenly across months
+  // This gives a clean monthly → annual rollup
+
+  let allRows = []; // for CSV export
+  let html = '';
+
+  // Grand total accumulators
+  let gtNetInt=0, gtTaxInt=0, gtSWP=0, gtSWPTax=0, gtNetHome=0;
+
+  rows.forEach(row => {
+    const yr = row.yr;
+    // Monthly values (all constant within a year since fixed income doesn't change month-to-month)
+    const moGrossInt   = row.totalInt / 12;       // gross interest per month
+    const moTaxInt     = row.taxIntMo;             // tax on interest per month
+    const moNetInt     = row.netIntMo;             // net interest per month
+    const moSWP        = row.swpFromMFs;           // SWP withdrawal per month
+    const moSWPTax     = row.swpTax / 12;          // SWP tax per month (amortised)
+    const moNetHome    = row.netTarget;             // net take-home per month
+
+    // Annual totals
+    const annGrossInt  = moGrossInt  * 12;
+    const annTaxInt    = moTaxInt    * 12;
+    const annNetInt    = moNetInt    * 12;
+    const annSWP       = moSWP       * 12;
+    const annSWPTax    = moSWPTax    * 12;
+    const annNetHome   = moNetHome   * 12;
+    const annTotalTax  = annTaxInt + annSWPTax;
+
+    gtNetInt  += annNetInt;
+    gtTaxInt  += annTotalTax;
+    gtSWP     += annSWP;
+    gtSWPTax  += annSWPTax;
+    gtNetHome += annNetHome;
+
+    // Collect for CSV
+    for(let mo=1; mo<=12; mo++){
+      allRows.push({
+        year:yr, month:mo,
+        grossInt:Math.round(moGrossInt),
+        taxInt:Math.round(moTaxInt),
+        netInt:Math.round(moNetInt),
+        swp:Math.round(moSWP),
+        swpTax:Math.round(moSWPTax),
+        totalTax:Math.round(moTaxInt+moSWPTax),
+        netHome:Math.round(moNetHome),
+        corpusEnd:row.corpEnd,
+      });
+    }
+
+    const chgClass = row.chg >= 0 ? 'green-cell' : 'red-cell';
+
+    html += `
+    <div style="margin-bottom:28px">
+      <!-- Year header -->
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border2)">
+        <span style="font-family:var(--font-d);font-size:20px">Year ${yr}</span>
+        <span style="font-size:12px;color:var(--text2)">Corpus at year end: <strong style="color:var(--text)">${fmtL(row.corpEnd)}</strong> <span class="${chgClass}" style="font-size:11px">(${fmtPct(row.chg)} vs start)</span></span>
+      </div>
+
+      <!-- Monthly table -->
+      <div class="tbl-wrap" style="margin-bottom:10px">
+        <table>
+          <thead><tr>
+            <th style="text-align:left">Month</th>
+            <th>Gross interest</th>
+            <th style="color:var(--red)">Interest tax</th>
+            <th>Net interest</th>
+            <th>SWP withdrawn</th>
+            <th style="color:var(--red)">SWP tax</th>
+            <th style="color:var(--red)">Total tax</th>
+            <th style="color:var(--text3)">Tax %</th>
+            <th style="color:var(--green)">Net take-home</th>
+          </tr></thead>
+          <tbody>
+            ${Array.from({length:12},(_,i)=>{
+              const mo = i+1;
+              const moNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+              const moTotalTax=moTaxInt+moSWPTax;
+              const taxPct=moNetHome>0?(moTotalTax/moNetHome*100):0;
+              return `<tr>
+                <td style="color:var(--text2);font-size:12px">${moNames[i]}</td>
+                <td class="mono">${fmt(moGrossInt)}</td>
+                <td class="red-cell mono">−${fmt(moTaxInt)}</td>
+                <td class="mono">${fmt(moNetInt)}</td>
+                <td class="mono ${moSWP>0?'':'muted'}">${moSWP>0?fmt(moSWP):'—'}</td>
+                <td class="red-cell mono">${moSWPTax>0?'−'+fmt(moSWPTax):'—'}</td>
+                <td class="red-cell mono">−${fmt(moTotalTax)}</td>
+                <td class="mono" style="color:var(--text3)">${taxPct.toFixed(1)}%</td>
+                <td class="green-cell mono" style="font-weight:600">${fmt(moNetHome)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+          <!-- Annual total row -->
+          <tfoot>
+            <tr style="background:var(--bg3);font-weight:600">
+              <td style="font-weight:700">Year ${yr} Total</td>
+              <td class="mono">${fmt(annGrossInt)}</td>
+              <td class="red-cell mono">−${fmt(annTaxInt)}</td>
+              <td class="mono">${fmt(annNetInt)}</td>
+              <td class="mono">${fmt(annSWP)}</td>
+              <td class="red-cell mono">${annSWPTax>0?'−'+fmt(annSWPTax):'—'}</td>
+              <td class="red-cell mono" style="font-weight:700">−${fmt(annTotalTax)}</td>
+              <td class="mono" style="color:var(--amber);font-weight:700">${(annNetHome>0?annTotalTax/annNetHome*100:0).toFixed(1)}%</td>
+              <td class="green-cell mono" style="font-weight:700;font-size:14px">${fmt(annNetHome)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Source breakdown for the year -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        ${products.filter(p=>p.intRate>0).map((p,i)=>`
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;font-size:11px">
+            <div style="color:var(--text3);margin-bottom:2px">${p.name}</div>
+            <div style="font-family:var(--font-m);font-weight:500">${fmt(p.amount*p.intRate/100/12)}/mo</div>
+            <div style="color:var(--red);font-size:10px">−${fmt(p.amount*p.intRate/100/12*TAX_R)} tax</div>
+          </div>`).join('')}
+        <div style="background:rgba(42,95,138,0.06);border:1px solid rgba(42,95,138,0.2);border-radius:var(--r);padding:8px 12px;font-size:11px">
+          <div style="color:var(--text3);margin-bottom:2px">SWP from MFs</div>
+          <div style="font-family:var(--font-m);font-weight:500;color:var(--blue)">${fmt(moSWP)}/mo</div>
+          <div style="color:var(--green);font-size:10px">~₹0 LTCG tax</div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  // 5-year grand total
+  html += `
+  <div style="background:var(--bg3);border:2px solid var(--border2);border-radius:var(--r2);padding:20px 24px;margin-top:8px">
+    <div style="font-family:var(--font-d);font-size:18px;margin-bottom:14px">5-Year Grand Total</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;flex-wrap:wrap">
+      <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:4px">Net interest earned</div><div style="font-family:var(--font-m);font-size:16px">${fmtL(gtNetInt)}</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:4px">Total SWP withdrawn</div><div style="font-family:var(--font-m);font-size:16px">${fmtL(gtSWP)}</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:4px">Total tax paid</div><div style="font-family:var(--font-m);font-size:16px;color:var(--red)">${fmtL(gtTaxInt)}</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:4px">Total received</div><div style="font-family:var(--font-m);font-size:16px;color:var(--green)">${fmtL(gtNetHome)}</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:4px">Corpus remaining</div><div style="font-family:var(--font-d);font-size:16px">${fmtL(rows[4].corpEnd)}</div><div style="font-size:11px;color:var(--text3)">${fmtPct(rows[4].chg)} vs start</div></div>
+    </div>
+  </div>`;
+
+  // Store for CSV
+  window._annualCSVRows = allRows;
+  $('annualContent').innerHTML = html;
+}
+
+function exportCSV(){
+  const rows = window._annualCSVRows;
+  if(!rows || !rows.length){ alert('Please view the Annual Breakdown tab first.'); return; }
+  const headers = ['Year','Month','Gross Interest','Interest Tax','Net Interest','SWP Withdrawn','SWP Tax','Total Tax','Net Take-Home','Corpus End'];
+  const moNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const lines = [headers.join(',')];
+  rows.forEach(r=>{
+    lines.push([r.year, moNames[r.month-1], r.grossInt, r.taxInt, r.netInt,
+                r.swp, r.swpTax, r.totalTax, r.netHome, Math.round(r.corpusEnd)].join(','));
+  });
+  // Add annual totals
+  lines.push('');
+  lines.push('ANNUAL TOTALS');
+  lines.push(['Year','Gross Interest','Interest Tax','Net Interest','SWP Withdrawn','SWP Tax','Total Tax','Net Take-Home'].join(','));
+  for(let yr=1;yr<=5;yr++){
+    const yrows = rows.filter(r=>r.year===yr);
+    const sum = k => yrows.reduce((s,r)=>s+r[k],0);
+    lines.push([yr,sum('grossInt'),sum('taxInt'),sum('netInt'),sum('swp'),sum('swpTax'),sum('totalTax'),sum('netHome')].join(','));
+  }
+  const blob = new Blob([lines.join('\n')],{type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'investment_plan_breakdown.csv';
+  a.click();
+}
+
+// ── Withdrawal Strategy ──────────────────────────────────────────────────────
+const FUND_TYPE_LABELS = {
+  'equity':'Equity MF (LTCG after 1yr)',
+  'hybrid':'Balanced Advantage / Hybrid (LTCG)',
+  'debt_mf':'Debt MF (slab tax on gains)',
+  'gold':'SGB (hold to maturity — avoid)',
+  'fixed':'Fixed income (interest only, not SWP-able)',
+};
+const TAX_TYPE_LABELS = {
+  'equity':'LTCG 12.5% above ₹1.25L',
+  'hybrid':'LTCG 12.5% above ₹1.25L',
+  'debt_mf':'Slab rate (31.2%) on gains',
+  'gold':'N/A (hold to maturity)',
+  'fixed':'N/A',
+};
+
+function renderStrategyPanel(){
+  const swpProds = products.filter(p=>p.type!=='fixed'&&p.type!=='gold');
+
+  let html = '';
+  for(let yr=1;yr<=5;yr++){
+    const strat = withdrawalStrategy[yr] || [{sourceId:'auto',pct:100}];
+    const isAuto = strat.length===1 && strat[0].sourceId==='auto';
+    html += `
+    <div class="strategy-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <span class="yr-label">Year ${yr}</span>
+        <span style="font-size:11px;color:var(--text2)">
+          Net target: <strong>${fmt(yr===1?gv('t1'):gv('t2'))}/mo</strong> &nbsp;·&nbsp;
+          SWP needed: <strong>${fmt(Math.max(0,(yr===1?gv('t1'):gv('t2'))-products.reduce((s,p)=>(p.type==='fixed'||p.type==='gold')?s+(p.amount*(p.intRate/100)-p.amount*(p.intRate/100)*TAX())/12:s,0)))}/mo</strong>
+        </span>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:auto;cursor:pointer;font-size:12px;color:var(--text2)">
+          <input type="checkbox" ${isAuto?'checked':''} onchange="toggleAuto(${yr},this.checked)" style="accent-color:var(--gold)">
+          Auto (smart waterfall)
+        </label>
+      </div>
+      ${isAuto
+        ? `<div style="font-size:12px;color:var(--text2);padding:8px 0">
+            Using automatic waterfall: existing LTCG MF first → then Balanced Advantage → Debt for last 20%.
+            Toggle off "Auto" to customise.
+           </div>`
+        : `<div class="yr-sources" id="sources-yr-${yr}">
+            ${strat.map((s,si)=>renderSourceRow(yr,si,s,swpProds)).join('')}
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+            <button class="add-source-btn" onclick="addSource(${yr})">+ Add source</button>
+            <span style="font-size:11px;color:var(--text3)" id="pct-check-${yr}"></span>
+          </div>`
+      }
+    </div>`;
+  }
+  $('strategyYears').innerHTML = html;
+  updatePctChecks();
+}
+
+function renderSourceRow(yr, si, s, swpProds){
+  const opts = swpProds.map(p=>`<option value="${p.id}" ${s.sourceId==p.id?'selected':''}>${p.name} (${FUND_TYPE_LABELS[p.type]||p.type})</option>`).join('');
+  return `<div class="yr-source-row" id="src-${yr}-${si}">
+    <select onchange="updateSource(${yr},${si},'sourceId',+this.value)">${opts}</select>
+    <input type="number" value="${s.pct}" min="0" max="100" step="5"
+      oninput="updateSource(${yr},${si},'pct',+this.value)" style="width:65px">
+    <span class="yr-pct-label">% of SWP</span>
+    <span style="font-size:10px;color:var(--blue);background:rgba(42,95,138,0.08);padding:2px 7px;border-radius:20px">
+      ${TAX_TYPE_LABELS[swpProds.find(p=>p.id==s.sourceId)?.type]||''}
+    </span>
+    ${si>0?`<button onclick="removeSource(${yr},${si})"
+      style="font-size:14px;background:transparent;border:none;color:var(--text3);cursor:pointer;padding:0 4px">×</button>`:''}
+  </div>`;
+}
+
+function toggleAuto(yr, isAuto){
+  if(isAuto){
+    withdrawalStrategy[yr]=[{sourceId:'auto',pct:100}];
+  } else {
+    const swpProds=products.filter(p=>p.type!=='fixed'&&p.type!=='gold');
+    withdrawalStrategy[yr]=swpProds.length>0?[{sourceId:swpProds[0].id,pct:100}]:[];
+  }
+  renderStrategyPanel();
+}
+
+function updateSource(yr,si,field,val){
+  if(!withdrawalStrategy[yr]) return;
+  withdrawalStrategy[yr][si][field]=val;
+  updatePctChecks();
+  // Re-render source row to update tax label
+  renderStrategyPanel();
+}
+
+function addSource(yr){
+  const swpProds=products.filter(p=>p.type!=='fixed'&&p.type!=='gold');
+  if(swpProds.length===0) return;
+  if(!withdrawalStrategy[yr]) withdrawalStrategy[yr]=[];
+  withdrawalStrategy[yr].push({sourceId:swpProds[0].id,pct:0});
+  renderStrategyPanel();
+}
+
+function removeSource(yr,si){
+  withdrawalStrategy[yr].splice(si,1);
+  renderStrategyPanel();
+}
+
+function updatePctChecks(){
+  for(let yr=1;yr<=5;yr++){
+    const el=$('pct-check-'+yr); if(!el) continue;
+    const strat=withdrawalStrategy[yr]||[];
+    if(strat.length===1&&strat[0].sourceId==='auto'){el.textContent='';continue;}
+    const total=strat.reduce((s,x)=>s+(+x.pct||0),0);
+    if(Math.abs(total-100)<1){el.textContent='✓ 100%';el.style.color='var(--green)';}
+    else{el.textContent=`⚠ Total: ${total}% (must = 100%)`;el.style.color='var(--red)';}
+  }
+}
+
+function resetStrategy(){
+  for(let yr=1;yr<=5;yr++) withdrawalStrategy[yr]=[{sourceId:'auto',pct:100}];
+  renderStrategyPanel();
+  $('strategyResult').innerHTML='';
+}
+
+function applyStrategy(){
+  // Validate all years total 100%
+  for(let yr=1;yr<=5;yr++){
+    const strat=withdrawalStrategy[yr]||[];
+    if(strat.length===1&&strat[0].sourceId==='auto') continue;
+    const total=strat.reduce((s,x)=>s+(+x.pct||0),0);
+    if(Math.abs(total-100)>=1){
+      $('strategyResult').innerHTML=`<div style="color:var(--red);font-size:12px;padding:10px;background:rgba(158,59,48,0.08);border-radius:var(--r)">⚠ Year ${yr} allocations must total 100%. Currently ${total}%.</div>`;
+      return;
+    }
+  }
+
+  // Run projection with custom strategy
+  const rows = runProjWithStrategy(activeScen, withdrawalStrategy);
+  let html = `<div class="card">
+    <div class="card-title">Strategy projection — ${activeScen}</div>
+    <table><thead><tr>
+      <th>Year</th><th>Net target</th><th>SWP sources</th>
+      <th style="color:var(--red)">Total tax/yr</th>
+      <th style="color:var(--amber)">Tax %</th>
+      <th style="color:var(--green)">Net take-home</th>
+      <th>Corpus end</th><th>vs start</th>
+    </tr></thead><tbody>`;
+
+  rows.forEach(r=>{
+    const taxPct=r.netTarget>0?(r.totTax/12/r.netTarget*100):0;
+    html+=`<tr>
+      <td>Year ${r.yr}</td>
+      <td class="mono">${fmt(r.netTarget)}/mo</td>
+      <td style="font-size:11px;color:var(--text2)">${r.sourceBreakdown}</td>
+      <td class="red-cell mono">−${fmt(r.totTax)}</td>
+      <td class="mono" style="color:var(--amber)">${taxPct.toFixed(1)}%</td>
+      <td class="green-cell"><span class="net-big">${fmt(r.netTarget)}</span>/mo</td>
+      <td class="mono">${fmtL(r.corpEnd)}</td>
+      <td class="${r.chg>=0?'green-cell':'red-cell'} mono">${fmtPct(r.chg)}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:3px">5yr total tax</div>
+           <div style="font-family:var(--font-m);font-size:16px;color:var(--red)">${fmtL(rows.reduce((s,r)=>s+r.totTax,0))}</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:3px">Avg tax % (yr 2-5)</div>
+           <div style="font-family:var(--font-m);font-size:16px;color:var(--amber)">${(rows.slice(1).reduce((s,r)=>s+r.totTax/12/r.netTarget*100,0)/4).toFixed(1)}%</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:3px">Corpus yr 5</div>
+           <div style="font-family:var(--font-d);font-size:16px">${fmtL(rows[4].corpEnd)} <span class="${rows[4].chg>=0?'green-cell':'red-cell'}" style="font-size:12px">(${fmtPct(rows[4].chg)})</span></div></div>
+    </div>
+  </div>`;
+
+  $('strategyResult').innerHTML = html;
+}
+
+function runProjWithStrategy(scen, strategy){
+  const r=getRates(scen);
+  const annTaxEst=products.reduce((s,p)=>s+taxInt(p),0);
+  const grossUp=annTaxEst/12;
+  const t1=(gv('t1')+grossUp)*12, t2=(gv('t2')+grossUp)*12;
+  const tot0=products.reduce((s,p)=>s+p.amount,0);
+  let st=products.map(p=>({...p,cur:p.amount}));
+  const rows=[];
+
+  for(let yr=1;yr<=5;yr++){
+    const need=yr===1?t1:t2;
+    const fixedInt=st.reduce((s,p)=>(p.type==='fixed'||p.type==='gold')?s+p.cur*(p.intRate/100):s,0);
+    const taxI=fixedInt*TAX();
+    const swpNeed=Math.max(0,need-fixedInt);
+    const strat=strategy[yr]||[{sourceId:'auto',pct:100}];
+    const isAuto=strat.length===1&&strat[0].sourceId==='auto';
+    let ltcgUsed=0, swpTax=0;
+    const mfTot=st.filter(p=>p.type!=='fixed'&&p.type!=='gold').reduce((s,p)=>s+p.cur,0);
+    const srcBreakdownParts=[];
+
+    st=st.map(p=>{
+      const gr=gRate(p,r);
+      if(p.type==='fixed') return{...p};
+      if(p.type==='gold'){return{...p,cur:p.cur*(1+gr)};}
+
+      let mySwp=0;
+      if(isAuto){
+        const share=mfTot>0?p.cur/mfTot:0;
+        mySwp=Math.min(p.cur,swpNeed*share);
+      } else {
+        // Find this product in strategy
+        const entry=strat.find(s=>+s.sourceId===p.id);
+        if(entry) mySwp=Math.min(p.cur, swpNeed*(+entry.pct/100));
+      }
+
+      if(mySwp>0) srcBreakdownParts.push(`${p.name}: ${fmt(mySwp/12)}/mo`);
+
+      const dr=r.dbt;
+      let gf;
+      if(p.type==='debt_mf') gf=dr/(1+dr);
+      else if(p.ltcg&&yr===1&&(p.gainFrac||0)>0) gf=p.gainFrac;
+      else gf=Math.min(r.eq*yr/(1+r.eq*yr),0.45);
+
+      const gain=mySwp*gf;
+      const isLTCG=p.type==='equity'||p.type==='hybrid';
+      if(isLTCG){const t=Math.max(0,gain-Math.max(0,LTCG_EXP-ltcgUsed));ltcgUsed+=gain;swpTax+=t*LTCG_RATE;}
+      else if(p.type==='debt_mf') swpTax+=gain*TAX();
+      return{...p,cur:Math.max(0,p.cur*(1+gr)-mySwp)};
+    });
+
+    const corpEnd=st.reduce((s,p)=>s+Math.max(0,p.cur),0);
+    const netTarget=yr===1?gv('t1'):gv('t2');
+    const netIntMo=(fixedInt-taxI)/12;
+    const swpFromMFs=Math.max(0,netTarget-netIntMo);
+    const totTax=taxI+swpTax;
+    rows.push({yr,need,fixedInt,taxI,swpNeed,swpTax,totTax,corpEnd,
+               chg:(corpEnd-tot0)/tot0*100,
+               netTarget,netIntMo,swpFromMFs,
+               sourceBreakdown:srcBreakdownParts.join(' · ')||'Auto'});
+  }
+  return rows;
 }
 
 function renderTaxPie(){
