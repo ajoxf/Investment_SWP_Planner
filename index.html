@@ -463,21 +463,10 @@ tr:hover td{background:rgba(0,0,0,0.015)}
 <!-- TAX GUIDE -->
 <div class="panel" id="panel-taxguide">
   <div class="page-title">Tax guide</div>
-  <div class="page-sub">What you pay and keep — under current rules (30% slab)</div>
-  <div class="tbl-wrap" style="margin-bottom:18px">
-    <table class="tax-table"><thead><tr><th>Income source</th><th>Tax type</th><th>Rate</th><th>Annual tax</th><th>Note</th></tr></thead>
-    <tbody>
-      <tr><td>SCSS interest (₹2,46,000/yr)</td><td>Income from Other Sources</td><td class="mono">31.2%</td><td class="red-cell mono">₹76,752</td><td>TDS if &gt;₹1L. Net yield ~5.64%.</td></tr>
-      <tr><td>RBI FRSB interest (₹24,150/yr)</td><td>Income from Other Sources</td><td class="mono">31.2%</td><td class="red-cell mono">₹7,535</td><td>No TDS. Declare in ITR.</td></tr>
-      <tr><td>SGB interest (₹41,500/yr)</td><td>Income from Other Sources</td><td class="mono">31.2%</td><td class="red-cell mono">₹12,948</td><td>No TDS. Declare in ITR.</td></tr>
-      <tr><td>Existing MF SWP — Year 1</td><td>Long Term Capital Gain</td><td class="mono">12.5% above ₹1.25L</td><td class="green-cell mono">₹0</td><td>~₹84k gain — within ₹1.25L exemption.</td></tr>
-      <tr><td>Balanced Adv SWP — Years 2–5</td><td>Long Term Capital Gain</td><td class="mono">12.5% above ₹1.25L</td><td class="green-cell mono">₹0–₹5k/yr</td><td>Gain stays within exemption most years.</td></tr>
-      <tr><td>SGB maturity gain</td><td>Exempt (original subscriber)</td><td class="mono">0%</td><td class="green-cell mono">₹0</td><td>Budget 2026: tax-free if held to maturity.</td></tr>
-      <tr class="row-total"><td colspan="3"><strong>Total annual tax</strong></td><td class="mono">~₹97k–₹1.02L/yr</td><td>Mostly interest. SWP is nearly tax-free.</td></tr>
-    </tbody></table>
-  </div>
+  <div class="page-sub" id="taxGuideSub">What you pay and keep — based on your portfolio and withdrawal strategy</div>
+  <div id="taxGuideTable"></div>
   <div class="card"><div class="card-title">Tax breakdown by source</div><div class="ch-sm"><canvas id="taxPie"></canvas></div></div>
-  <div class="info-box" style="margin-top:14px"><strong>Key insight:</strong> Interest income is your main tax burden (31.2% slab). MF SWP is far more tax-efficient — LTCG 12.5% above ₹1.25L/yr exemption, typically ₹0 for first 2–3 years.</div>
+  <div class="info-box" id="taxGuideNote" style="margin-top:14px"></div>
 </div>
 
 <!-- WATERFALL -->
@@ -833,7 +822,7 @@ function go(name){
   }
   if(name==='projection') renderProjection();
   if(name==='scenarios') renderScenBar();
-  if(name==='taxguide') renderTaxPie();
+  if(name==='taxguide') renderTaxGuide();
   if(name==='strategy') renderStrategyPanel();
   if(name==='details') renderDetails();
   if(name==='annual') renderAnnual();
@@ -999,7 +988,7 @@ function renderOverview(tot,gInt,tInt,nInt){
 }
 
 function renderProjection(){
-  const rows=runProj(activeScen);
+  const rows=runProjWithStrategy(activeScen,withdrawalStrategy);
   const tot0=products.reduce((s,p)=>s+p.amount,0);
   const corp5=rows[4]?.corpEnd||tot0;
   const totTax5=rows.reduce((s,r)=>s+r.totTax,0);
@@ -1124,18 +1113,20 @@ function setDetailScen(scen, btn){
 }
 
 function renderDetails(){
-  const rows = runProj(detailScen);
+  const rows = runProjWithStrategy(detailScen, withdrawalStrategy);
   const tot0 = products.reduce((s,p)=>s+p.amount,0);
-
-  // Build product columns from initial products
-  const prodCols = products.map(p=>p.name);
+  const TAX_R = TAX();
 
   let html = '';
   rows.forEach(row=>{
     const snap = row.snapshot || [];
+    const totalTaxMo = (row.taxI + row.swpTax) / 12;
+    const slabTaxMo = row.taxI / 12;
+    const cgTaxMo = row.swpTax / 12;
+    const taxPct = row.netTarget > 0 ? (totalTaxMo / row.netTarget * 100) : 0;
     html += `
     <div style="margin-bottom:22px">
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span>Year ${row.yr}</span>
         <span style="font-size:11px;font-weight:400;color:var(--text2)">
           Net target: ${fmt(row.netTarget)}/mo &nbsp;·&nbsp;
@@ -1144,6 +1135,11 @@ function renderDetails(){
           Corpus end: ${fmtL(row.corpEnd)}
           <span class="${row.chg>=0?'green-cell':'red-cell'}" style="font-weight:500"> (${fmtPct(row.chg)})</span>
         </span>
+        <span style="font-size:11px;font-weight:400;background:rgba(158,59,48,0.07);color:var(--red);padding:2px 10px;border-radius:20px">
+          Tax/mo: ${fmt(totalTaxMo)}
+          &nbsp;(<span title="Income Tax Slab on interest">Slab ${(TAX_R*100).toFixed(0)}%: ${fmt(slabTaxMo)}</span>
+          ${cgTaxMo>0?' + <span title="Long Term Capital Gains on MF SWP">LTCG 12.5%: '+fmt(cgTaxMo)+'</span>':''})
+        </span>
       </div>
       <div class="tbl-wrap" style="margin-bottom:0">
         <table>
@@ -1151,8 +1147,9 @@ function renderDetails(){
             <th style="text-align:left">Product</th>
             <th>Type</th>
             <th>Value at year end</th>
-            <th>Annual interest</th>
             <th>Monthly interest</th>
+            <th>Tax/mo</th>
+            <th>Tax type</th>
             <th>SWP drawn/mo</th>
             <th>Net contribution/mo</th>
           </tr></thead>
@@ -1160,17 +1157,23 @@ function renderDetails(){
             ${snap.map(p=>{
               const annualInt = p.cur*(p.intRate||0)/100;
               const moInt = annualInt/12;
-              const taxOnInt = (p.type==='fixed'||p.type==='gold')? moInt*TAX() : 0;
-              const netMoInt = moInt - taxOnInt;
-              const contribution = netMoInt + (p.swp||0);
+              const intTaxMo = p.intTaxMo || 0;
+              const swpTaxMo = p.swpTaxMo || 0;
+              const totalProdTax = intTaxMo + swpTaxMo;
+              const netMoInt = moInt - intTaxMo;
+              const swpNet = (p.swp||0) - swpTaxMo;
+              const contribution = netMoInt + swpNet;
+              const taxLabel = p.taxType || '—';
+              const hasSwp = (p.swp||0) > 0;
               return `<tr>
                 <td>${p.name}</td>
                 <td><span class="type-tag ${TYPE_META[p.type]?.cls||''}" style="font-size:10px">${TYPE_META[p.type]?.label||p.type}</span></td>
                 <td class="mono">${fmtL(p.cur)}</td>
-                <td class="mono">${annualInt>0?fmt(annualInt):'—'}</td>
                 <td class="mono">${moInt>0?fmt(moInt):'—'}</td>
-                <td class="mono ${(p.swp||0)>0?'green-cell':''}">${(p.swp||0)>0?fmt(p.swp||0):'—'}</td>
-                <td class="mono">${fmt(contribution)}</td>
+                <td class="red-cell mono">${totalProdTax>0?'−'+fmt(totalProdTax):'—'}</td>
+                <td><span style="font-size:10px;padding:2px 7px;border-radius:20px;background:${p.type==='debt_mf'||p.type==='fixed'||p.type==='gold'?'rgba(158,59,48,0.08)':'rgba(42,110,64,0.08)'};color:${p.type==='debt_mf'||p.type==='fixed'||p.type==='gold'?'var(--red)':'var(--green)'}">${taxLabel}</span></td>
+                <td class="mono ${hasSwp?'green-cell':''}">${hasSwp?fmt(p.swp||0):'—'}</td>
+                <td class="mono" style="color:var(--green)">${fmt(contribution)}</td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -1178,8 +1181,9 @@ function renderDetails(){
             <tr style="font-weight:600;background:var(--bg3)">
               <td colspan="2">Total</td>
               <td class="mono">${fmtL(row.corpEnd)}</td>
-              <td class="mono">${fmt(snap.reduce((s,p)=>s+p.cur*(p.intRate||0)/100,0))}</td>
               <td class="mono">${fmt(snap.reduce((s,p)=>s+p.cur*(p.intRate||0)/100/12,0))}</td>
+              <td class="red-cell mono">−${fmt(snap.reduce((s,p)=>s+(p.intTaxMo||0)+(p.swpTaxMo||0),0))}</td>
+              <td style="font-size:10px;color:var(--text3)">Slab ${(TAX_R*100).toFixed(0)}% (int) + LTCG 12.5% (SWP gains)</td>
               <td class="mono green-cell">${fmt(snap.reduce((s,p)=>s+(p.swp||0),0))}</td>
               <td class="mono" style="color:var(--green);font-weight:600">${fmt(row.netTarget)}</td>
             </tr>
@@ -1235,7 +1239,7 @@ function setAnnualScen(scen, btn){
 }
 
 function renderAnnual(){
-  const rows = runProj(annualScen);
+  const rows = runProjWithStrategy(annualScen, withdrawalStrategy);
   const tot0 = products.reduce((s,p)=>s+p.amount,0);
   const TAX_R = TAX();
 
@@ -1305,10 +1309,10 @@ function renderAnnual(){
           <thead><tr>
             <th style="text-align:left">Month</th>
             <th>Gross interest</th>
-            <th style="color:var(--red)">Interest tax</th>
+            <th style="color:var(--red)">Interest tax <span style="font-weight:400;opacity:0.7">(Slab: ${(TAX_R*100).toFixed(0)}%)</span></th>
             <th>Net interest</th>
             <th>SWP withdrawn</th>
-            <th style="color:var(--red)">SWP tax</th>
+            <th style="color:var(--red)">SWP/CG tax <span style="font-weight:400;opacity:0.7">(LTCG: 12.5%)</span></th>
             <th style="color:var(--red)">Total tax</th>
             <th style="color:var(--text3)">Tax %</th>
             <th style="color:var(--green)">Net take-home</th>
@@ -1319,6 +1323,8 @@ function renderAnnual(){
               const moNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
               const moTotalTax=moTaxInt+moSWPTax;
               const taxPct=moNetHome>0?(moTotalTax/moNetHome*100):0;
+              const slabPct=moNetHome>0?(moTaxInt/moNetHome*100):0;
+              const cgPct=moNetHome>0?(moSWPTax/moNetHome*100):0;
               return `<tr>
                 <td style="color:var(--text2);font-size:12px">${moNames[i]}</td>
                 <td class="mono">${fmt(moGrossInt)}</td>
@@ -1327,7 +1333,7 @@ function renderAnnual(){
                 <td class="mono ${moSWP>0?'':'muted'}">${moSWP>0?fmt(moSWP):'—'}</td>
                 <td class="red-cell mono">${moSWPTax>0?'−'+fmt(moSWPTax):'—'}</td>
                 <td class="red-cell mono">−${fmt(moTotalTax)}</td>
-                <td class="mono" style="color:var(--text3)">${taxPct.toFixed(1)}%</td>
+                <td class="mono" style="color:var(--text3)">${taxPct.toFixed(1)}%<br><span style="font-size:10px;color:var(--text3)">${slabPct.toFixed(1)}%+${cgPct.toFixed(1)}%</span></td>
                 <td class="green-cell mono" style="font-weight:600">${fmt(moNetHome)}</td>
               </tr>`;
             }).join('')}
@@ -1337,12 +1343,15 @@ function renderAnnual(){
             <tr style="background:var(--bg3);font-weight:600">
               <td style="font-weight:700">Year ${yr} Total</td>
               <td class="mono">${fmt(annGrossInt)}</td>
-              <td class="red-cell mono">−${fmt(annTaxInt)}</td>
+              <td class="red-cell mono">−${fmt(annTaxInt)}<br><span style="font-size:10px;font-weight:400;color:var(--text3)">Income tax slab ${(TAX_R*100).toFixed(0)}%</span></td>
               <td class="mono">${fmt(annNetInt)}</td>
               <td class="mono">${fmt(annSWP)}</td>
-              <td class="red-cell mono">${annSWPTax>0?'−'+fmt(annSWPTax):'—'}</td>
+              <td class="red-cell mono">${annSWPTax>0?'−'+fmt(annSWPTax)+'<br><span style="font-size:10px;font-weight:400;color:var(--text3)">LTCG 12.5% on gains</span>':'—'}</td>
               <td class="red-cell mono" style="font-weight:700">−${fmt(annTotalTax)}</td>
-              <td class="mono" style="color:var(--amber);font-weight:700">${(annNetHome>0?annTotalTax/annNetHome*100:0).toFixed(1)}%</td>
+              <td class="mono" style="color:var(--amber);font-weight:700">
+                ${(annNetHome>0?annTotalTax/annNetHome*100:0).toFixed(1)}%
+                <br><span style="font-size:10px;font-weight:400;color:var(--text3)">${(annNetHome>0?annTaxInt/annNetHome*100:0).toFixed(1)}% slab + ${(annNetHome>0?annSWPTax/annNetHome*100:0).toFixed(1)}% LTCG</span>
+              </td>
               <td class="green-cell mono" style="font-weight:700;font-size:14px">${fmt(annNetHome)}</td>
             </tr>
           </tfoot>
@@ -1351,17 +1360,20 @@ function renderAnnual(){
 
       <!-- Source breakdown for the year -->
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        ${products.filter(p=>p.intRate>0).map((p,i)=>`
+        ${(row.snapshot||[]).filter(p=>p.intRate>0).map((p,i)=>`
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;font-size:11px">
             <div style="color:var(--text3);margin-bottom:2px">${p.name}</div>
-            <div style="font-family:var(--font-m);font-weight:500">${fmt(p.amount*p.intRate/100/12)}/mo</div>
-            <div style="color:var(--red);font-size:10px">−${fmt(p.amount*p.intRate/100/12*TAX_R)} tax</div>
+            <div style="font-family:var(--font-m);font-weight:500">${fmt((p.int||0))}/mo</div>
+            <div style="color:var(--red);font-size:10px">−${fmt(p.intTaxMo||0)} tax <span style="color:var(--text3)">(Slab ${(TAX_R*100).toFixed(0)}%)</span></div>
           </div>`).join('')}
-        <div style="background:rgba(42,95,138,0.06);border:1px solid rgba(42,95,138,0.2);border-radius:var(--r);padding:8px 12px;font-size:11px">
-          <div style="color:var(--text3);margin-bottom:2px">SWP from MFs</div>
-          <div style="font-family:var(--font-m);font-weight:500;color:var(--blue)">${fmt(moSWP)}/mo</div>
-          <div style="color:var(--green);font-size:10px">~₹0 LTCG tax</div>
-        </div>
+        ${(row.snapshot||[]).filter(p=>(p.swp||0)>0).map(p=>{
+          const taxMo = p.swpTaxMo||0;
+          return `<div style="background:rgba(42,95,138,0.06);border:1px solid rgba(42,95,138,0.2);border-radius:var(--r);padding:8px 12px;font-size:11px">
+            <div style="color:var(--text3);margin-bottom:2px">${p.name} (SWP)</div>
+            <div style="font-family:var(--font-m);font-weight:500;color:var(--blue)">${fmt(p.swp)}/mo</div>
+            <div style="${taxMo>0?'color:var(--red)':'color:var(--green)'};font-size:10px">${taxMo>0?'−'+fmt(taxMo)+' '+p.taxType:'₹0 tax ('+p.taxType+' — within exemption)'}</div>
+          </div>`;
+        }).join('')}
       </div>
     </div>`;
   });
@@ -1578,6 +1590,11 @@ function applyStrategy(){
   </div>`;
 
   $('strategyResult').innerHTML = html;
+
+  // Re-render all strategy-aware panels so they reflect the new allocation
+  renderProjection();
+  renderDetails();
+  renderAnnual();
 }
 
 function runProjWithStrategy(scen, strategy){
@@ -1599,18 +1616,27 @@ function runProjWithStrategy(scen, strategy){
     let ltcgUsed=0, swpTax=0;
     const mfTot=st.filter(p=>p.type!=='fixed'&&p.type!=='gold').reduce((s,p)=>s+p.cur,0);
     const srcBreakdownParts=[];
+    const yearSnapshot=[];
 
     st=st.map(p=>{
       const gr=gRate(p,r);
-      if(p.type==='fixed') return{...p};
-      if(p.type==='gold'){return{...p,cur:p.cur*(1+gr)};}
+      if(p.type==='fixed'){
+        yearSnapshot.push({...p,swp:0,int:p.cur*(p.intRate/100)/12,swpTaxMo:0,
+          taxType:'Slab '+(TAX()*100).toFixed(0)+'%',intTaxMo:p.cur*(p.intRate/100)/12*TAX()});
+        return{...p};
+      }
+      if(p.type==='gold'){
+        const newCur=p.cur*(1+gr);
+        yearSnapshot.push({...p,cur:newCur,swp:0,int:p.cur*(p.intRate/100)/12,swpTaxMo:0,
+          taxType:'Slab '+(TAX()*100).toFixed(0)+'% (int)',intTaxMo:p.cur*(p.intRate/100)/12*TAX()});
+        return{...p,cur:newCur};
+      }
 
       let mySwp=0;
       if(isAuto){
         const share=mfTot>0?p.cur/mfTot:0;
         mySwp=Math.min(p.cur,swpNeed*share);
       } else {
-        // Find this product in strategy
         const entry=strat.find(s=>+s.sourceId===p.id);
         if(entry) mySwp=Math.min(p.cur, swpNeed*(+entry.pct/100));
       }
@@ -1625,9 +1651,14 @@ function runProjWithStrategy(scen, strategy){
 
       const gain=mySwp*gf;
       const isLTCG=p.type==='equity'||p.type==='hybrid';
-      if(isLTCG){const t=Math.max(0,gain-Math.max(0,LTCG_EXP-ltcgUsed));ltcgUsed+=gain;swpTax+=t*LTCG_RATE;}
-      else if(p.type==='debt_mf') swpTax+=gain*TAX();
-      return{...p,cur:Math.max(0,p.cur*(1+gr)-mySwp)};
+      let prodTax=0;
+      if(isLTCG){const t=Math.max(0,gain-Math.max(0,LTCG_EXP-ltcgUsed));ltcgUsed+=gain;swpTax+=t*LTCG_RATE;prodTax=t*LTCG_RATE;}
+      else if(p.type==='debt_mf'){swpTax+=gain*TAX();prodTax=gain*TAX();}
+      const newCur=Math.max(0,p.cur*(1+gr)-mySwp);
+      const taxTypeLabel=isLTCG?'LTCG 12.5%':'Slab '+(TAX()*100).toFixed(0)+'%';
+      yearSnapshot.push({...p,cur:newCur,swp:mySwp/12,int:0,swpTaxMo:prodTax/12,
+        taxType:taxTypeLabel,intTaxMo:0});
+      return{...p,cur:newCur};
     });
 
     const corpEnd=st.reduce((s,p)=>s+Math.max(0,p.cur),0);
@@ -1635,19 +1666,120 @@ function runProjWithStrategy(scen, strategy){
     const netIntMo=(fixedInt-taxI)/12;
     const swpFromMFs=Math.max(0,netTarget-netIntMo);
     const totTax=taxI+swpTax;
-    rows.push({yr,need,fixedInt,taxI,swpNeed,swpTax,totTax,corpEnd,
+    rows.push({yr,need,totalInt:fixedInt,fixedInt,taxI,taxIntMo:taxI/12,swpNeed,swpTax,totTax,corpEnd,
                chg:(corpEnd-tot0)/tot0*100,
                netTarget,netIntMo,swpFromMFs,
+               snapshot:yearSnapshot,
                sourceBreakdown:srcBreakdownParts.join(' · ')||'Auto'});
   }
   return rows;
 }
 
-function renderTaxPie(){
+function renderTaxGuide(){
+  const TAX_R = TAX();
+  const taxSlabLabel = TAX_R>=0.3?'30% + cess (31.2%)':TAX_R>=0.2?'20% + cess (20.8%)':TAX_R>=0.1?'10% + cess (10.4%)':'Nil (0%)';
+  const palette=['#9e3b30','#7a5a1e','#7a5c2e','#2a5f8a','#4e3a8e','#6a3a2a','#2a6e40'];
+  let ci=0;
+
+  // Run base scenario with current strategy to get realistic SWP tax per product
+  const baseRows = runProjWithStrategy('base', withdrawalStrategy);
+
+  const pieLabels=[], pieData=[], pieColorsA=[], pieColorsB=[];
+  let tableRows='', totalAnnualTax=0;
+
+  // Fixed / gold products — interest taxed at slab rate
+  products.filter(p=>p.type==='fixed'||p.type==='gold').forEach(p=>{
+    const annInt = p.amount*(p.intRate/100);
+    if(!annInt) return;
+    const annTax = annInt*TAX_R;
+    totalAnnualTax += annTax;
+    const netYield = (p.intRate*(1-TAX_R)).toFixed(2);
+    const tdsNote = annInt>100000?'TDS if >₹1L/yr.':'No TDS.';
+    const matNote = p.type==='gold'?' Maturity gain: 0% (original subscriber, held to maturity).':'';
+    const slabBadge=`<span style="background:rgba(158,59,48,0.1);color:var(--red);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500">Income Tax Slab — ${(TAX_R*100).toFixed(1)}%</span>`;
+    tableRows += `<tr>
+      <td>${p.name} (₹${Math.round(annInt).toLocaleString('en-IN')}/yr interest)</td>
+      <td>Income from Other Sources</td>
+      <td class="mono">${slabBadge}</td>
+      <td class="red-cell mono">−${fmt(annTax)}</td>
+      <td>${tdsNote} Net yield ~${netYield}%.${matNote}</td>
+    </tr>`;
+    const col=palette[ci++%palette.length];
+    pieLabels.push(p.name+' interest tax'); pieData.push(Math.round(annTax));
+    pieColorsA.push(col+'55'); pieColorsB.push(col);
+  });
+
+  // MF products — LTCG or slab on gains
+  products.filter(p=>p.type!=='fixed'&&p.type!=='gold').forEach(p=>{
+    // Average annual SWP tax across 5 years (base scenario, strategy-aware)
+    const avgSwpTaxYr = baseRows.reduce((s,r)=>{
+      const snap=(r.snapshot||[]).find(x=>x.id===p.id);
+      return s+(snap?(snap.swpTaxMo||0)*12:0);
+    },0)/5;
+    const avgSwpYr = baseRows.reduce((s,r)=>{
+      const snap=(r.snapshot||[]).find(x=>x.id===p.id);
+      return s+(snap?(snap.swp||0)*12:0);
+    },0)/5;
+    totalAnnualTax += avgSwpTaxYr;
+    const isLTCG = p.type==='equity'||p.type==='hybrid';
+    const taxTypeName = isLTCG ? 'Long Term Capital Gains (LTCG)' : 'Capital Gains — Slab rate';
+    const rateBadge = isLTCG
+      ? `<span style="background:rgba(42,110,64,0.1);color:var(--green);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500">LTCG 12.5% above ₹1.25L exemption</span>`
+      : `<span style="background:rgba(158,59,48,0.1);color:var(--red);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500">Slab ${(TAX_R*100).toFixed(0)}% on gain portion</span>`;
+    const note = isLTCG
+      ? `LTCG ₹1.25L/yr exempt. Avg SWP: ~${fmt(avgSwpYr)}/yr. Only gain fraction taxed — ₹0 most years.`
+      : `Gains taxed at slab rate. Avg SWP: ~${fmt(avgSwpYr)}/yr. Gain fraction ≈ ${(getRates('base').dbt*100/(100+getRates('base').dbt*100)).toFixed(1)}%.`;
+    const cellClass = avgSwpTaxYr>0?'red-cell':'green-cell';
+    tableRows += `<tr>
+      <td>${p.name} SWP (avg ${fmt(avgSwpYr)}/yr)</td>
+      <td>${taxTypeName}</td>
+      <td class="mono">${rateBadge}</td>
+      <td class="${cellClass} mono">${avgSwpTaxYr>0?'−'+fmt(avgSwpTaxYr):'₹0'}</td>
+      <td>${note}</td>
+    </tr>`;
+    if(avgSwpTaxYr>0){
+      const col=palette[ci++%palette.length];
+      pieLabels.push(p.name+' SWP tax'); pieData.push(Math.round(avgSwpTaxYr));
+      pieColorsA.push(col+'55'); pieColorsB.push(col);
+    }
+  });
+
+  // Total row
+  tableRows += `<tr class="row-total">
+    <td colspan="3"><strong>Total annual tax</strong> <span style="font-weight:400;font-size:11px;color:var(--text2)">(Slab on interest + LTCG/Slab on SWP gains)</span></td>
+    <td class="mono">~${fmt(totalAnnualTax)}/yr</td>
+    <td style="font-size:11px;color:var(--text2)">Mainly interest. SWP gains often within ₹1.25L LTCG exemption.</td>
+  </tr>`;
+
+  // Withdrawal strategy summary
+  const stratLines = Object.entries(withdrawalStrategy).map(([yr,strat])=>{
+    const isAuto=strat.length===1&&strat[0].sourceId==='auto';
+    if(isAuto) return `<strong>Year ${yr}:</strong> Auto waterfall`;
+    const parts=strat.map(s=>{const prod=products.find(p=>p.id==s.sourceId);return (prod?prod.name:'?')+' '+s.pct+'%';});
+    return `<strong>Year ${yr}:</strong> `+parts.join(', ');
+  }).join(' &nbsp;·&nbsp; ');
+
+  $('taxGuideTable').innerHTML = `
+  <div style="background:rgba(122,92,46,0.05);border:1px solid rgba(122,92,46,0.2);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:11px;color:var(--text2);line-height:1.8">
+    <strong style="color:var(--text)">Withdrawal strategy (base scenario):</strong><br>${stratLines}
+  </div>
+  <div class="tbl-wrap" style="margin-bottom:18px">
+    <table class="tax-table">
+      <thead><tr><th>Income source</th><th>Tax type</th><th>Rate</th><th>Annual tax (avg)</th><th>Note</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+  </div>`;
+
+  $('taxGuideSub').textContent = `What you pay and keep — ${taxSlabLabel} selected · based on current portfolio & strategy`;
+  $('taxGuideNote').innerHTML = `<strong>Key insight:</strong> Interest income (SCSS, bonds, SGB) is taxed at your income slab (${(TAX_R*100).toFixed(1)}%) — this is your main tax burden. MF SWP via equity/hybrid funds attracts only LTCG at 12.5%, and only on the <em>gain portion</em> — with ₹1.25L/yr exempt, tax is often ₹0 for the first 2–3 years. Debt MF SWP is taxed at your slab rate on gains — less tax-efficient than equity/hybrid for SWP. <strong>Strategy tip:</strong> Favour equity/hybrid SWP over debt SWP to minimise capital gains tax.`;
+
   mkChart('taxPie','doughnut',{
-    labels:['SCSS interest tax','RBI FRSB tax','SGB interest tax','MF SWP tax'],
-    datasets:[{data:[76752,7535,12948,1500],backgroundColor:['#9e3b3055','#7a5a1e55','#7a5c2e55','#2a6e4055'],borderColor:['#9e3b30','#7a5a1e','#7a5c2e','#2a6e40'],borderWidth:1,hoverOffset:4}]
-  },{cutout:'60%',plugins:{legend:{position:'right',labels:{color:GR.color,font:{size:10,family:'DM Sans'},boxWidth:9,padding:10}},tooltip:{callbacks:{label:c=>' ₹'+c.parsed.toLocaleString('en-IN')+'/yr'}}}});
+    labels: pieLabels,
+    datasets:[{data:pieData,backgroundColor:pieColorsA,borderColor:pieColorsB,borderWidth:1,hoverOffset:4}]
+  },{cutout:'60%',plugins:{
+    legend:{position:'right',labels:{color:GR.color,font:{size:10,family:'DM Sans'},boxWidth:9,padding:10}},
+    tooltip:{callbacks:{label:c=>' ₹'+c.parsed.toLocaleString('en-IN')+'/yr'}}
+  }});
 }
 
 renderProducts();
